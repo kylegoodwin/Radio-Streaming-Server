@@ -1,0 +1,4 @@
+//required
+go get go.mongodb.org/mongo-driver/mongo                   //MongoDb driver
+go get golang.org/x/crypto/bcrypt        //password hashing
+

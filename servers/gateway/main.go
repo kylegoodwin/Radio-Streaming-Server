@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"context"
+	
 
 	"github.com/Radio-Streaming-Server/servers/gateway/models/users"
 	"github.com/Radio-Streaming-Server/servers/gateway/sessions"
@@ -19,8 +20,9 @@ import (
 	"github.com/streadway/amqp"
 
 	"github.com/Radio-Streaming-Server/servers/gateway/handlers"
-
-	_ "github.com/go-sql-driver/mysql"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 //Create docker  network
@@ -46,6 +48,8 @@ func failOnError(err error, msg string) {
 
 func main() {
 
+	//Environment variable parsing and setup
+	//====================================================================================================================================================
 	ADDR := os.Getenv("ADDR")
 	if len(ADDR) == 0 {
 		ADDR = ":443"
@@ -120,26 +124,24 @@ func main() {
 		summarURLs = append(summarURLs, u)
 	}
 
-	//USE STORE INITIALIZATION
+	//User and Session store setup
+	//====================================================================================================================================================
 
-	//Create DB object from SQL DB
-	db, err := sql.Open("mysql", dsn)
-	if err != nil {
-		fmt.Printf("Error opening the database: %v", err)
+	//Create DB object from mongo DB
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://mongo:27017"))
+
+	err = client.Ping(ctx, readpref.Primary())
+	if err != nil{
+		fmt.Printf("Main.go could not connect to mongodb: %v", err)
 		os.Exit(1)
 	}
+	defer client.Disconnect(context.TODO())
 
-	err = db.Ping()
-	if err != nil {
-		fmt.Printf("Error pinging the database: %v", err)
-		os.Exit(1)
-	}
+	collection := client.Database("messagingDB").Collection("users")
 
-	//When comeplete, close the db
-	defer db.Close()
-
-	//Create mysqlstore
-	usersStore := users.NewMySQLStore(db)
+	//Create MongoStore
+	usersStore := users.NewMongoStore(collection)
 
 	//Create redis connection
 	redisClient := redis.NewClient(&redis.Options{
@@ -150,17 +152,19 @@ func main() {
 	sessionStore := sessions.NewRedisStore(redisClient, time.Hour)
 
 	//Create context
-	context := handlers.NewContext(sessionkey, sessionStore, usersStore)
+	cont := handlers.NewContext(sessionkey, sessionStore, usersStore)
 
 	//Initialize the tree on server startup
-	context.UsersStore.PopulateTrie()
+	cont.UsersStore.PopulateTrie()
 
 	//Microservice reverse proxy setup
+	//====================================================================================================================================================
 	//It wants a URL not a string, example from exercise does not consider this issue
-	messagingRProxy := &httputil.ReverseProxy{Director: context.UserDirector(msgURLs)}
-	summaryRProxy := &httputil.ReverseProxy{Director: context.UserDirector(summarURLs)}
+	messagingRProxy := &httputil.ReverseProxy{Director: cont.UserDirector(msgURLs)}
+	summaryRProxy := &httputil.ReverseProxy{Director: cont.UserDirector(summarURLs)}
 
-	//RabbitMQ Setup 5672?
+	//RabbitMQ Setup 5672
+	//====================================================================================================================================================
 	conn, err := amqp.Dial("amqp://guest:guest@rabbitmq:5672/")
 	failOnError(err, "Failed to connect to RabbitMQ")
 	defer conn.Close()
@@ -191,24 +195,27 @@ func main() {
 	)
 	failOnError(err, "Failed to register a consumer")
 
-	////Create SocketStore
+	//WebSocket Setup
+	//===================================================================================================================================================
+	//Create SocketStore
 	wss := &handlers.SocketStore{
 		Connections: make(map[int64]*websocket.Conn),
 		Lock:        &sync.Mutex{},
-		Cont:        context,
+		Cont:        cont,
 	}
 
 	//Go routine kicked off, ready to read from rabbit queue
 	go wss.SendMessages(msgs)
 
 	//Go mux setup
+	//===================================================================================================================================================
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/v1/ws", wss.SocketConnectionHandler)
-	mux.HandleFunc("/v1/users", context.UsersHandler)
-	mux.HandleFunc("/v1/users/", context.SpecificUserHandler)
-	mux.HandleFunc("/v1/sessions", context.SessionsHandler)
-	mux.HandleFunc("/v1/sessions/", context.SpecificSessionHandler)
+	mux.HandleFunc("/v1/users", cont.UsersHandler)
+	mux.HandleFunc("/v1/users/", cont.SpecificUserHandler)
+	mux.HandleFunc("/v1/sessions", cont.SessionsHandler)
+	mux.HandleFunc("/v1/sessions/", cont.SpecificSessionHandler)
 	mux.HandleFunc("/v1/test", testHandler)
 	mux.Handle("/v1/summary", summaryRProxy)
 	mux.Handle("/v1/channels", messagingRProxy)

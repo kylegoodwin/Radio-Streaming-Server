@@ -1,51 +1,26 @@
 package users
 
 import (
-	"database/sql"
 	"errors"
 	"strings"
 
 	"github.com/Radio-Streaming-Server/servers/gateway/indexes"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
-//MySQLStore is a struct that holds a *sql.DB as Client
-type MySQLStore struct {
-	Client *sql.DB
-	Trie   *indexes.Trie
+//MongoStore is a struct that holds a *mongo.DB as Client
+type MongoStore struct {
+	Collection *mongo.Collection
+	Trie       *indexes.Trie
 }
 
-/*
-func main() {
-
-	//data source name
-	dsn := fmt.Sprintf("root@/blog")
-
-	//db object
-	db, err := sql.Open("mysql", dsn)
-	if err != nil {
-		fmt.Printf("Error opening the database: %v", err)
-		os.Exit(1)
-	}
-
-	//When comeplete, close the db
-	defer db.Close()
-
-	//create a live connection to the db
-	// if err := db.Ping(); err != nil {
-	// 	fmt.Printf("error pinging database: %v\n", err)
-	// } else {
-	// 	fmt.Printf("successfully connected!\n")
-	// }
-}
-*/
-
-//NewMySQLStore generates a MySQLStore struct and returns it
-func NewMySQLStore(db *sql.DB) *MySQLStore {
+//NewMongoStore generates a MongoStore struct and returns it
+func NewMongoStore(col *mongo.Collection) *MongoStore {
 	//Thank Mr.TA
-	if db != nil {
-		return &MySQLStore{
-			Client: db,
-			Trie:   indexes.NewTrie(),
+	if col != nil {
+		return &MongoStore{
+			Collection: col,
+			Trie:       indexes.NewTrie(),
 		}
 	}
 
@@ -53,9 +28,9 @@ func NewMySQLStore(db *sql.DB) *MySQLStore {
 }
 
 //PopulateTrie pulls users from the store and populates them into the Trie
-func (mss *MySQLStore) PopulateTrie() error {
+func (ms *MongoStore) PopulateTrie() error {
 	//Grab these fields from all users
-	rows, err := mss.Client.Query("select id,user_name,first_name,last_name from users")
+	rows, err := ms.Client.Query("select id,user_name,first_name,last_name from users")
 	defer rows.Close()
 	if err != nil {
 		return err
@@ -70,14 +45,14 @@ func (mss *MySQLStore) PopulateTrie() error {
 		}
 
 		//Add the user into the Trie
-		mss.InsertUserIntoTrie(tempUser)
+		ms.InsertUserIntoTrie(tempUser)
 	}
 
 	return nil
 }
 
-//InsertUserIntoTrie adds a user to the sqlstore trie using the ID, UserName, FirstName, and LastName fields
-func (mss *MySQLStore) InsertUserIntoTrie(user *User) {
+//InsertUserIntoTrie adds a user to the mongo trie using the ID, UserName, FirstName, and LastName fields
+func (ms *MongoStore) InsertUserIntoTrie(user *User) {
 	//Declare insertion slice
 	insertionSlice := []string{}
 	//Break the fields up if they have spaces
@@ -105,15 +80,15 @@ func (mss *MySQLStore) InsertUserIntoTrie(user *User) {
 
 	//Insert into the Trie
 	for _, i := range insertionSlice {
-		mss.Trie.Add(i, user.ID)
+		ms.Trie.Add(i, user.ID)
 	}
 }
 
 //GetByID returns the User with the given ID
-func (mss *MySQLStore) GetByID(id int64) (*User, error) {
-	sqlcmd := "select * from users where id=?"
+func (ms *MongoStore) GetByID(id int64) (*User, error) {
+	mongocmd := "select * from users where id=?"
 	user := User{}
-	err := mss.Client.QueryRow(sqlcmd, id).Scan(&user.ID, &user.Email, &user.PassHash, &user.UserName, &user.FirstName, &user.LastName, &user.PhotoURL)
+	err := ms.Client.QueryRow(mongocmd, id).Scan(&user.ID, &user.Email, &user.PassHash, &user.UserName, &user.FirstName, &user.LastName, &user.PhotoURL)
 	if err != nil {
 		return nil, err
 	}
@@ -121,10 +96,10 @@ func (mss *MySQLStore) GetByID(id int64) (*User, error) {
 }
 
 //GetByEmail returns the User with the given email
-func (mss *MySQLStore) GetByEmail(email string) (*User, error) {
-	sqlcmd := "select * from users where email=?"
+func (ms *MongoStore) GetByEmail(email string) (*User, error) {
+	mongocmd := "select * from users where email=?"
 	user := User{}
-	err := mss.Client.QueryRow(sqlcmd, email).Scan(&user.ID, &user.Email, &user.PassHash, &user.UserName, &user.FirstName, &user.LastName, &user.PhotoURL)
+	err := ms.Client.QueryRow(mongocmd, email).Scan(&user.ID, &user.Email, &user.PassHash, &user.UserName, &user.FirstName, &user.LastName, &user.PhotoURL)
 	if err != nil {
 		return nil, err
 	}
@@ -132,10 +107,10 @@ func (mss *MySQLStore) GetByEmail(email string) (*User, error) {
 }
 
 //GetByUserName returns the User with the given Username
-func (mss *MySQLStore) GetByUserName(username string) (*User, error) {
-	sqlcmd := "select * from users where user_name=?"
+func (ms *MongoStore) GetByUserName(username string) (*User, error) {
+	mongocmd := "select * from users where user_name=?"
 	user := User{}
-	err := mss.Client.QueryRow(sqlcmd, username).Scan(&user.ID, &user.Email, &user.PassHash, &user.UserName, &user.FirstName, &user.LastName, &user.PhotoURL)
+	err := ms.Client.QueryRow(mongocmd, username).Scan(&user.ID, &user.Email, &user.PassHash, &user.UserName, &user.FirstName, &user.LastName, &user.PhotoURL)
 	if err != nil {
 		return nil, err
 	}
@@ -144,9 +119,9 @@ func (mss *MySQLStore) GetByUserName(username string) (*User, error) {
 
 //Insert inserts the user into the database, and returns
 //the newly-inserted User, complete with the DBMS-assigned ID
-func (mss *MySQLStore) Insert(user *User) (*User, error) {
+func (ms *MongoStore) Insert(user *User) (*User, error) {
 	insq := "insert into users(email, pass_hash, user_name, first_name, last_name, photo_URL) values (?,?,?,?,?,?)"
-	res, err := mss.Client.Exec(insq, user.Email, user.PassHash, user.UserName, user.FirstName, user.LastName, user.PhotoURL)
+	res, err := ms.Client.Exec(insq, user.Email, user.PassHash, user.UserName, user.FirstName, user.LastName, user.PhotoURL)
 	if err != nil {
 		return nil, err
 	}
@@ -163,9 +138,9 @@ func (mss *MySQLStore) Insert(user *User) (*User, error) {
 }
 
 //InsertSignIn logs a new successful sign in
-func (mss *MySQLStore) InsertSignIn(userID int64, ip string) (int64, error) {
+func (ms *MongoStore) InsertSignIn(userID int64, ip string) (int64, error) {
 	insq := "insert into successful_logins(user_id, sign_in_time, login_ip) values (?,now(),?)"
-	res, err := mss.Client.Exec(insq, userID, ip)
+	res, err := ms.Client.Exec(insq, userID, ip)
 	if err != nil {
 		return int64(0), err
 	}
@@ -180,26 +155,26 @@ func (mss *MySQLStore) InsertSignIn(userID int64, ip string) (int64, error) {
 
 //Update applies UserUpdates to the given user ID
 //and returns the newly-updated user
-func (mss *MySQLStore) Update(id int64, updates *Updates) (*User, error) {
+func (ms *MongoStore) Update(id int64, updates *Updates) (*User, error) {
 
-	sqlcmd := "update users set first_name=? last_name=? where id=?"
+	mongocmd := "update users set first_name=? last_name=? where id=?"
 
-	_, err := mss.Client.Exec(sqlcmd, updates.FirstName, updates.LastName, id)
+	_, err := ms.Client.Exec(mongocmd, updates.FirstName, updates.LastName, id)
 	if err != nil {
 		return nil, err
 	}
 
 	//Just to properly return an updated user. Probably not optimal
-	user, err := mss.GetByID(id)
+	user, err := ms.GetByID(id)
 	user.ApplyUpdates(updates)
 
 	return user, nil
 }
 
 //Delete deletes the user with the given ID
-func (mss *MySQLStore) Delete(id int64) error {
-	sqlcmd := "delete from users where id=?"
-	_, err := mss.Client.Exec(sqlcmd, id)
+func (ms *MongoStore) Delete(id int64) error {
+	mongocmd := "delete from users where id=?"
+	_, err := ms.Client.Exec(mongocmd, id)
 	if err != nil {
 		return err
 	}
