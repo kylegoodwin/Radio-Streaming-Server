@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"github.com/assignments-zanewebbUW/servers/gateway/models/users"
-	"github.com/assignments-zanewebbUW/servers/gateway/sessions"
+	"github.com/Radio-Streaming-Server/servers/gateway/models/users"
+	"github.com/Radio-Streaming-Server/servers/gateway/sessions"
 )
 
 //TODO: define a handler context struct that

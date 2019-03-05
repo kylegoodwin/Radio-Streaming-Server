@@ -12,13 +12,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/assignments-zanewebbUW/servers/gateway/models/users"
-	"github.com/assignments-zanewebbUW/servers/gateway/sessions"
+	"github.com/Radio-Streaming-Server/servers/gateway/models/users"
+	"github.com/Radio-Streaming-Server/servers/gateway/sessions"
 	"github.com/go-redis/redis"
 	"github.com/gorilla/websocket"
 	"github.com/streadway/amqp"
 
-	"github.com/assignments-zanewebbUW/servers/gateway/handlers"
+	"github.com/Radio-Streaming-Server/servers/gateway/handlers"
 
 	_ "github.com/go-sql-driver/mysql"
 )

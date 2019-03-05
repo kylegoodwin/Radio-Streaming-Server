@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"sync/atomic"
 
-	"github.com/assignments-zanewebbUW/servers/gateway/sessions"
+	"github.com/Radio-Streaming-Server/servers/gateway/sessions"
 )
 
 //Director wkjdnakjwdnkjawd

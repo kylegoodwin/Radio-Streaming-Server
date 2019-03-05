@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/assignments-zanewebbUW/servers/gateway/models/users"
-	"github.com/assignments-zanewebbUW/servers/gateway/sessions"
+	"github.com/Radio-Streaming-Server/servers/gateway/models/users"
+	"github.com/Radio-Streaming-Server/servers/gateway/sessions"
 )
 
 //TODO: define HTTP handler functions as described in the

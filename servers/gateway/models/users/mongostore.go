@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/assignments-zanewebbUW/servers/gateway/indexes"
+	"github.com/Radio-Streaming-Server/servers/gateway/indexes"
 )
 
 //MySQLStore is a struct that holds a *sql.DB as Client

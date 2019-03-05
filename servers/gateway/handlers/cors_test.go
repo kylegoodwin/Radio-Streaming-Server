@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/assignments-zanewebbUW/servers/gateway/handlers"
+	"github.com/Radio-Streaming-Server/servers/gateway/handlers"
 )
 
 func TestCors(t *testing.T) {

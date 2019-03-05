@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/assignments-zanewebbUW/servers/gateway/sessions"
+	"github.com/Radio-Streaming-Server/servers/gateway/sessions"
 	"github.com/gorilla/websocket"
 	"github.com/streadway/amqp"
 )

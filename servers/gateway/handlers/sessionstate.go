@@ -3,7 +3,7 @@ package handlers
 import (
 	"time"
 
-	"github.com/assignments-zanewebbUW/servers/gateway/models/users"
+	"github.com/Radio-Streaming-Server/servers/gateway/models/users"
 )
 
 //TODO: define a session state struct for this web server
