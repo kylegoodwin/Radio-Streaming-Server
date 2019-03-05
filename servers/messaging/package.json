@@ -1,0 +1,18 @@
+{
+  "name": "messaging",
+  "version": "1.0.0",
+  "description": "This directory contains the source code for your messaging microservice",
+  "main": "messaging.js",
+  "dependencies": {
+    "express": "^4.16.4",
+    "mongodb": "^3.1.13",
+    "mongoose": "^5.4.14"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node messaging.js"
+  },
+  "author": "",
+  "license": "ISC"
+}
