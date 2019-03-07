@@ -36,14 +36,14 @@ func NewMongoStore(col *mongo.Collection) *MongoStore {
 func (ms *MongoStore) PopulateTrie() error {
 	//Grab these fields from all users
 	//nil as the filter will pull all documents
-	cur, err := ms.Collection.Find(context.Backgound(), nil, options.Find())
-	defer cur.Close(context.Backgound())
+	cur, err := ms.Collection.Find(context.TODO(), nil, options.Find())
+	defer cur.Close(context.TODO())
 	if err != nil {
 		return err
 	}
 
 	//For each user in the DB, insert the correct key pairs for that user
-	for cur.Next(context.Backgound()) {
+	for cur.Next(context.TODO()) {
 		//Grab the user's info
 		tempUser := &User{}
 		if err := cur.Decode(&tempUser); err != nil {
@@ -93,7 +93,7 @@ func (ms *MongoStore) InsertUserIntoTrie(user *User) {
 //GetByID returns the User with the given ID
 func (ms *MongoStore) GetByID(id string) (*User, error) {
 	user := User{}
-	err := ms.Collection.FindOne(context.Backgound(), bson.D{{"_id", id}}).Decode(&user)
+	err := ms.Collection.FindOne(context.TODO(), bson.D{{"_id", id}}).Decode(&user)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +104,7 @@ func (ms *MongoStore) GetByID(id string) (*User, error) {
 func (ms *MongoStore) GetByEmail(email string) (*User, error) {
 	user := User{}
 	//Uncertain if this will work or if the email needs capitalization in the document key
-	err := ms.Collection.FindOne(context.Backgound(), bson.D{{"email", email}}).Decode(&user)
+	err := ms.Collection.FindOne(context.TODO(), bson.D{{"email", email}}).Decode(&user)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +115,7 @@ func (ms *MongoStore) GetByEmail(email string) (*User, error) {
 func (ms *MongoStore) GetByUserName(username string) (*User, error) {
 	user := User{}
 	//Uncertain if this will work or if the username needs capitalization in the document key
-	err := ms.Collection.FindOne(context.Backgound(), bson.D{{"userName", username}}).Decode(&user)
+	err := ms.Collection.FindOne(context.TODO(), bson.D{{"userName", username}}).Decode(&user)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +126,7 @@ func (ms *MongoStore) GetByUserName(username string) (*User, error) {
 //the newly-inserted User, complete with the DBMS-assigned ID
 func (ms *MongoStore) Insert(user *User) (*User, error) {
 	//bsonUser, err := bson.Marshal(user)
-	res, err := ms.Collection.InsertOne(context.Background(), user)
+	res, err := ms.Collection.InsertOne(context.TODO(), user)
 	if err != nil {
 		return nil, err
 	}
@@ -139,29 +139,29 @@ func (ms *MongoStore) Insert(user *User) (*User, error) {
 	return user, nil
 }
 
-//InsertSignIn logs a new successful sign in
-func (ms *MongoStore) InsertSignIn(userID int64, ip string) (int64, error) {
-	insq := "insert into successful_logins(user_id, sign_in_time, login_ip) values (?,now(),?)"
-	res, err := ms.Collection.Exec(insq, userID, ip)
-	if err != nil {
-		return int64(0), err
-	}
+// //InsertSignIn logs a new successful sign in
+// func (ms *MongoStore) InsertSignIn(userID string, ip string) (string, error) {
+// 	insq := "insert into successful_logins(user_id, sign_in_time, login_ip) values (?,now(),?)"
+// 	res, err := ms.Collection.Exec(insq, userID, ip)
+// 	if err != nil {
+// 		return int64(0), err
+// 	}
 
-	//get generated ID from insert
-	id, err := res.LastInsertId()
-	if err != nil {
-		return int64(0), err
-	}
-	return id, nil
-}
+// 	//get generated ID from insert
+// 	id, err := res.LastInsertId()
+// 	if err != nil {
+// 		return int64(0), err
+// 	}
+// 	return id, nil
+// }
 
 //Update applies UserUpdates to the given user ID
 //and returns the newly-updated user
-func (ms *MongoStore) Update(id int64, updates *Updates) (*User, error) {
+func (ms *MongoStore) Update(id string, updates *Updates) (*User, error) {
 
 	mongocmd := "update users set first_name=? last_name=? where id=?"
 
-	_, err := ms.Collection.Exec(mongocmd, updates.FirstName, updates.LastName, id)
+	_, err := ms.Collection.UpdateOne(context.TODO(), bson.D{{"_id", bson.ObjectIdHex(id)}}, updates)
 	if err != nil {
 		return nil, err
 	}
@@ -174,9 +174,8 @@ func (ms *MongoStore) Update(id int64, updates *Updates) (*User, error) {
 }
 
 //Delete deletes the user with the given ID
-func (ms *MongoStore) Delete(id int64) error {
-	mongocmd := "delete from users where id=?"
-	_, err := ms.Collection.Exec(mongocmd, id)
+func (ms *MongoStore) Delete(id string) error {
+	_, err := ms.Collection.DeleteOne(context.TODO(), bson.D{{"_id", bson.ObjectIdHex(id)}})
 	if err != nil {
 		return err
 	}
