@@ -1,8 +1,11 @@
 package users
 
 import (
+	"context"
 	"errors"
 	"strings"
+
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/Radio-Streaming-Server/servers/gateway/indexes"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -30,17 +33,18 @@ func NewMongoStore(col *mongo.Collection) *MongoStore {
 //PopulateTrie pulls users from the store and populates them into the Trie
 func (ms *MongoStore) PopulateTrie() error {
 	//Grab these fields from all users
-	rows, err := ms.Collection.Query("select id,user_name,first_name,last_name from users")
-	defer rows.Close()
+	//nil as the filter will pull all documents
+	cur, err := ms.Collection.Find(context.TODO(), nil, options.Find())
+	defer cur.Close(context.TODO())
 	if err != nil {
 		return err
 	}
 
 	//For each user in the DB, insert the correct key pairs for that user
-	for rows.Next() {
+	for cur.Next(context.TODO()) {
 		//Grab the user's info
 		tempUser := &User{}
-		if err := rows.Scan(&tempUser.ID, &tempUser.UserName, &tempUser.FirstName, &tempUser.LastName); err != nil {
+		if err := cur.Decode(&tempUser); err != nil {
 			return errors.New("Failed while parsing rows")
 		}
 
