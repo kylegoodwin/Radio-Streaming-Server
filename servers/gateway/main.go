@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,8 +11,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"context"
-	
 
 	"github.com/Radio-Streaming-Server/servers/gateway/models/users"
 	"github.com/Radio-Streaming-Server/servers/gateway/sessions"
@@ -132,7 +131,7 @@ func main() {
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://mongo:27017"))
 
 	err = client.Ping(ctx, readpref.Primary())
-	if err != nil{
+	if err != nil {
 		fmt.Printf("Main.go could not connect to mongodb: %v", err)
 		os.Exit(1)
 	}
