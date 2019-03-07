@@ -20,7 +20,7 @@ func TestContext(t *testing.T) {
 	//Fail Case
 	var a *redis.Client
 	b := sessions.NewRedisStore(a, time.Second) // sessions.NewMemStore(time.Hour, time.Hour)
-	c := &users.MongoStore{}                    //&users.MyMockStore{}
+	c := &users.MySQLStore{}                    //&users.MyMockStore{}
 	context := NewContext("", b, c)
 	if context != nil {
 		t.Error("Expected Context constructor to fail but it did not return nil")
@@ -54,7 +54,7 @@ func TestContext_POSTUserHandler(t *testing.T) {
 	context := &Context{
 		Key:           "testkey",
 		SessionsStore: sessions.NewRedisStore(client, time.Hour), //sessions.NewMemStore(time.Hour, time.Hour),
-		UsersStore:    &users.MongoStore{},                       //&users.MyMockStore{},
+		UsersStore:    &users.MySQLStore{},                       //&users.MyMockStore{},
 	}
 
 	//CREATE NEW USERS FOR TEST CASES
@@ -239,7 +239,7 @@ func TestContext_GETSpecificUserHandler(t *testing.T) {
 	context := &Context{
 		Key:           "testkey",
 		SessionsStore: sessions.NewRedisStore(client, time.Hour), //sessions.NewMemStore(time.Hour, time.Hour),
-		UsersStore:    &users.MongoStore{},                       //&users.MyMockStore{},
+		UsersStore:    &users.MySQLStore{},                       //&users.MyMockStore{},
 	}
 
 	validNewUser := users.NewUser{
@@ -410,7 +410,7 @@ func TestContext_PATCHSpecificUserHandler(t *testing.T) {
 	context := &Context{
 		Key:           "testkey",
 		SessionsStore: sessions.NewRedisStore(client, time.Hour), //sessions.NewMemStore(time.Hour, time.Hour),
-		UsersStore:    &users.MongoStore{},                       //&users.MyMockStore{},
+		UsersStore:    &users.MySQLStore{},                       //&users.MyMockStore{},
 	}
 
 	validNewUser := users.NewUser{
@@ -573,7 +573,7 @@ func TestContext_SessionsHandler(t *testing.T) {
 	context := &Context{
 		Key:           "testkey",
 		SessionsStore: sessions.NewRedisStore(client, time.Hour), // sessions.NewMemStore(time.Hour, time.Hour),
-		UsersStore:    &users.MongoStore{},                       //&users.MyMockStore{},
+		UsersStore:    &users.MySQLStore{},                       //&users.MyMockStore{},
 	}
 
 	//CREATE CREDENTIALS FOR TEST CASES
@@ -753,7 +753,7 @@ func TestContext_DELETESpecificSessionHandler(t *testing.T) {
 	context := &Context{
 		Key:           "testkey",
 		SessionsStore: sessions.NewRedisStore(client, time.Hour), //sessions.NewMemStore(time.Hour, time.Hour),
-		UsersStore:    &users.MongoStore{},                       //&users.MyMockStore{},
+		UsersStore:    &users.MySQLStore{},                       //&users.MyMockStore{},
 	}
 
 	validNewUser := users.NewUser{
