@@ -1,8 +1,12 @@
 package users
 
 import (
+	"context"
 	"errors"
 	"strings"
+
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"gopkg.in/mgo.v2/bson"
 
 	"github.com/Radio-Streaming-Server/servers/gateway/indexes"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -30,17 +34,18 @@ func NewMongoStore(col *mongo.Collection) *MongoStore {
 //PopulateTrie pulls users from the store and populates them into the Trie
 func (ms *MongoStore) PopulateTrie() error {
 	//Grab these fields from all users
-	rows, err := ms.Collection.Query("select id,user_name,first_name,last_name from users")
-	defer rows.Close()
+	//nil as the filter will pull all documents
+	cur, err := ms.Collection.Find(context.TODO(), nil, options.Find())
+	defer cur.Close(context.TODO())
 	if err != nil {
 		return err
 	}
 
 	//For each user in the DB, insert the correct key pairs for that user
-	for rows.Next() {
+	for cur.Next(context.TODO()) {
 		//Grab the user's info
 		tempUser := &User{}
-		if err := rows.Scan(&tempUser.ID, &tempUser.UserName, &tempUser.FirstName, &tempUser.LastName); err != nil {
+		if err := cur.Decode(&tempUser); err != nil {
 			return errors.New("Failed while parsing rows")
 		}
 
@@ -85,10 +90,9 @@ func (ms *MongoStore) InsertUserIntoTrie(user *User) {
 }
 
 //GetByID returns the User with the given ID
-func (ms *MongoStore) GetByID(id int64) (*User, error) {
-	mongocmd := "select * from users where id=?"
+func (ms *MongoStore) GetByID(id string) (*User, error) {
 	user := User{}
-	err := ms.Collection.QueryRow(mongocmd, id).Scan(&user.ID, &user.Email, &user.PassHash, &user.UserName, &user.FirstName, &user.LastName, &user.PhotoURL)
+	err := ms.Collection.FindOne(context.TODO(), bson.D{{"_id", id}}).Decode(&user)
 	if err != nil {
 		return nil, err
 	}
@@ -97,9 +101,9 @@ func (ms *MongoStore) GetByID(id int64) (*User, error) {
 
 //GetByEmail returns the User with the given email
 func (ms *MongoStore) GetByEmail(email string) (*User, error) {
-	mongocmd := "select * from users where email=?"
 	user := User{}
-	err := ms.Collection.QueryRow(mongocmd, email).Scan(&user.ID, &user.Email, &user.PassHash, &user.UserName, &user.FirstName, &user.LastName, &user.PhotoURL)
+	//Uncertain if this will work or if the email needs capitalization in the document key
+	err := ms.Collection.FindOne(context.TODO(), bson.D{{"email", email}}).Decode(&user)
 	if err != nil {
 		return nil, err
 	}
@@ -108,9 +112,9 @@ func (ms *MongoStore) GetByEmail(email string) (*User, error) {
 
 //GetByUserName returns the User with the given Username
 func (ms *MongoStore) GetByUserName(username string) (*User, error) {
-	mongocmd := "select * from users where user_name=?"
 	user := User{}
-	err := ms.Collection.QueryRow(mongocmd, username).Scan(&user.ID, &user.Email, &user.PassHash, &user.UserName, &user.FirstName, &user.LastName, &user.PhotoURL)
+	//Uncertain if this will work or if the username needs capitalization in the document key
+	err := ms.Collection.FindOne(context.TODO(), bson.D{{"userName", username}}).Decode(&user)
 	if err != nil {
 		return nil, err
 	}

@@ -19,7 +19,7 @@ var bcryptCost = 13
 
 //User represents a user account in the database
 type User struct {
-	ID        int64  `json:"id"`
+	ID        string `json:"id"`
 	Email     string `json:"-"` //never JSON encoded/decoded
 	PassHash  []byte `json:"-"` //never JSON encoded/decoded
 	UserName  string `json:"userName"`
@@ -96,7 +96,7 @@ func (nu *NewUser) ToUser() (*User, error) {
 	mdFiver := md5.New()
 	mdFiver.Write([]byte(strings.TrimSpace(strings.ToLower(nu.Email))))
 	u := User{
-		ID:        0,
+		//ID:        0,
 		Email:     nu.Email,
 		PassHash:  []byte{},
 		UserName:  nu.UserName,
