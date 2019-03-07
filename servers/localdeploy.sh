@@ -4,6 +4,7 @@ export DSN="root:PASSWORDGOESHERE@tcp(mysqlServer:3306)/db"
 export SESSIONKEY=sessionkey
 export MYSQL_ROOT_PASSWORD=MAKEAPASSWORD
 export MESSAGESADDR=http://messaging:80
+
 sudo docker run -d --name redisServer --network gatewayNetwork redis
 sudo docker run -d --name mysqlServer --network gatewayNetwork -e MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD -e MYSQL_DATABASE=db zanewebb/zanemysql
 sudo docker run -d --name --network gatewayNetwork mongo mongo

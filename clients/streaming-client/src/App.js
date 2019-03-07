@@ -1,26 +1,45 @@
 import React, { Component } from 'react';
 import logo from './logo.svg';
 import './App.css';
+import Home from './components/Home'
+import {Link, Route} from 'react-router-dom';
+import StartStream from './components/StartStream';
 
 class App extends Component {
+  constructor(props){
+      super(props);
+      this.state = {
+          loggedIn: false,
+          currentUser:{}
+      };
+  };
+
+  loginUser = (credentials) =>{
+    fetch('https://api.radio-stream.com/v1/sessions/', {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(credentials)
+        }).then((response) => response.json())
+        .then((data)=>{
+            this.setState({currentUser:data, loggedIn: true});
+            //redirect to home
+            //this.props.history.push('/')
+        });
+  }
+
   render() {
     return (
-      <div className="App">
-        <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <p>
-            Edit <code>src/App.js</code> and save to reload.
-          </p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
-        </header>
-      </div>
+      <Switch>
+        <Route exact path='/' render={(routerProps) => (
+                        <Home {...routerProps} loggedIn={this.state.loggedIn} currentUser={this.state.currentUser} />
+                    )} />
+        <Route path="/login" render={(routerProps) => (
+                        <Login {...routerProps} loginUser={this.loginUser.bind(this)} loggedIn={this.state.loggedIn} />
+                    )} />
+        <Route path="/start-stream" component={StartStream} />
+      </Switch>
     );
   }
 }
