@@ -8,7 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-//MongoStore is a struct that holds a *mongo.DB as Client
+//MongoStore is a struct that holds a *mongo.Collection as Collection
 type MongoStore struct {
 	Collection *mongo.Collection
 	Trie       *indexes.Trie
@@ -30,7 +30,7 @@ func NewMongoStore(col *mongo.Collection) *MongoStore {
 //PopulateTrie pulls users from the store and populates them into the Trie
 func (ms *MongoStore) PopulateTrie() error {
 	//Grab these fields from all users
-	rows, err := ms.Client.Query("select id,user_name,first_name,last_name from users")
+	rows, err := ms.Collection.Query("select id,user_name,first_name,last_name from users")
 	defer rows.Close()
 	if err != nil {
 		return err
@@ -88,7 +88,7 @@ func (ms *MongoStore) InsertUserIntoTrie(user *User) {
 func (ms *MongoStore) GetByID(id int64) (*User, error) {
 	mongocmd := "select * from users where id=?"
 	user := User{}
-	err := ms.Client.QueryRow(mongocmd, id).Scan(&user.ID, &user.Email, &user.PassHash, &user.UserName, &user.FirstName, &user.LastName, &user.PhotoURL)
+	err := ms.Collection.QueryRow(mongocmd, id).Scan(&user.ID, &user.Email, &user.PassHash, &user.UserName, &user.FirstName, &user.LastName, &user.PhotoURL)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +99,7 @@ func (ms *MongoStore) GetByID(id int64) (*User, error) {
 func (ms *MongoStore) GetByEmail(email string) (*User, error) {
 	mongocmd := "select * from users where email=?"
 	user := User{}
-	err := ms.Client.QueryRow(mongocmd, email).Scan(&user.ID, &user.Email, &user.PassHash, &user.UserName, &user.FirstName, &user.LastName, &user.PhotoURL)
+	err := ms.Collection.QueryRow(mongocmd, email).Scan(&user.ID, &user.Email, &user.PassHash, &user.UserName, &user.FirstName, &user.LastName, &user.PhotoURL)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ func (ms *MongoStore) GetByEmail(email string) (*User, error) {
 func (ms *MongoStore) GetByUserName(username string) (*User, error) {
 	mongocmd := "select * from users where user_name=?"
 	user := User{}
-	err := ms.Client.QueryRow(mongocmd, username).Scan(&user.ID, &user.Email, &user.PassHash, &user.UserName, &user.FirstName, &user.LastName, &user.PhotoURL)
+	err := ms.Collection.QueryRow(mongocmd, username).Scan(&user.ID, &user.Email, &user.PassHash, &user.UserName, &user.FirstName, &user.LastName, &user.PhotoURL)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +121,7 @@ func (ms *MongoStore) GetByUserName(username string) (*User, error) {
 //the newly-inserted User, complete with the DBMS-assigned ID
 func (ms *MongoStore) Insert(user *User) (*User, error) {
 	insq := "insert into users(email, pass_hash, user_name, first_name, last_name, photo_URL) values (?,?,?,?,?,?)"
-	res, err := ms.Client.Exec(insq, user.Email, user.PassHash, user.UserName, user.FirstName, user.LastName, user.PhotoURL)
+	res, err := ms.Collection.Exec(insq, user.Email, user.PassHash, user.UserName, user.FirstName, user.LastName, user.PhotoURL)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +140,7 @@ func (ms *MongoStore) Insert(user *User) (*User, error) {
 //InsertSignIn logs a new successful sign in
 func (ms *MongoStore) InsertSignIn(userID int64, ip string) (int64, error) {
 	insq := "insert into successful_logins(user_id, sign_in_time, login_ip) values (?,now(),?)"
-	res, err := ms.Client.Exec(insq, userID, ip)
+	res, err := ms.Collection.Exec(insq, userID, ip)
 	if err != nil {
 		return int64(0), err
 	}
@@ -159,7 +159,7 @@ func (ms *MongoStore) Update(id int64, updates *Updates) (*User, error) {
 
 	mongocmd := "update users set first_name=? last_name=? where id=?"
 
-	_, err := ms.Client.Exec(mongocmd, updates.FirstName, updates.LastName, id)
+	_, err := ms.Collection.Exec(mongocmd, updates.FirstName, updates.LastName, id)
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +174,7 @@ func (ms *MongoStore) Update(id int64, updates *Updates) (*User, error) {
 //Delete deletes the user with the given ID
 func (ms *MongoStore) Delete(id int64) error {
 	mongocmd := "delete from users where id=?"
-	_, err := ms.Client.Exec(mongocmd, id)
+	_, err := ms.Collection.Exec(mongocmd, id)
 	if err != nil {
 		return err
 	}

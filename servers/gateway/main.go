@@ -105,23 +105,23 @@ func main() {
 		msgURLs = append(msgURLs, u)
 	}
 
-	SUMMARYADDR := os.Getenv("SUMMARYADDR")
-	if len(SUMMARYADDR) == 0 {
-		fmt.Println("SUMMARYADDR env variable was not set")
-		os.Exit(1)
-	}
+	// SUMMARYADDR := os.Getenv("SUMMARYADDR")
+	// if len(SUMMARYADDR) == 0 {
+	// 	fmt.Println("SUMMARYADDR env variable was not set")
+	// 	os.Exit(1)
+	// }
 	//Parse comma delimited service URL strings and turn them into URL objects
-	summaryAddresses := strings.Split(SUMMARYADDR, ",")
-	var summarURLs []*url.URL
-	for _, s := range summaryAddresses {
-		fmt.Printf("Parsing addr of: %s", s)
-		u, err := url.Parse(s)
-		if err != nil {
-			fmt.Printf("Error parsing message URLs: %v", err)
-			os.Exit(1)
-		}
-		summarURLs = append(summarURLs, u)
-	}
+	// summaryAddresses := strings.Split(SUMMARYADDR, ",")
+	// var summarURLs []*url.URL
+	// for _, s := range summaryAddresses {
+	// 	fmt.Printf("Parsing addr of: %s", s)
+	// 	u, err := url.Parse(s)
+	// 	if err != nil {
+	// 		fmt.Printf("Error parsing message URLs: %v", err)
+	// 		os.Exit(1)
+	// 	}
+	// 	summarURLs = append(summarURLs, u)
+	// }
 
 	//User and Session store setup
 	//====================================================================================================================================================
@@ -160,7 +160,7 @@ func main() {
 	//====================================================================================================================================================
 	//It wants a URL not a string, example from exercise does not consider this issue
 	messagingRProxy := &httputil.ReverseProxy{Director: cont.UserDirector(msgURLs)}
-	summaryRProxy := &httputil.ReverseProxy{Director: cont.UserDirector(summarURLs)}
+	//summaryRProxy := &httputil.ReverseProxy{Director: cont.UserDirector(summarURLs)}
 
 	//RabbitMQ Setup 5672
 	//====================================================================================================================================================
@@ -216,7 +216,7 @@ func main() {
 	mux.HandleFunc("/v1/sessions", cont.SessionsHandler)
 	mux.HandleFunc("/v1/sessions/", cont.SpecificSessionHandler)
 	mux.HandleFunc("/v1/test", testHandler)
-	mux.Handle("/v1/summary", summaryRProxy)
+	//mux.Handle("/v1/summary", summaryRProxy)
 	mux.Handle("/v1/channels", messagingRProxy)
 	mux.Handle("/v1/channels/", messagingRProxy)
 	mux.Handle("/v1/messages/", messagingRProxy)
