@@ -7,6 +7,7 @@ import (
 	"net/mail"
 	"strings"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -19,35 +20,35 @@ var bcryptCost = 13
 
 //User represents a user account in the database
 type User struct {
-	ID        string `json:"id"`
-	Email     string `json:"-"` //never JSON encoded/decoded
-	PassHash  []byte `json:"-"` //never JSON encoded/decoded
-	UserName  string `json:"userName"`
-	FirstName string `json:"firstName"`
-	LastName  string `json:"lastName"`
-	PhotoURL  string `json:"photoURL"`
+	ID        *primitive.ObjectID `json:"id" bson:"_id"`
+	Email     string              `json:"-" bson:"-"` //never JSON encoded/decoded
+	PassHash  []byte              `json:"-" bson:"-"` //never JSON encoded/decoded
+	UserName  string              `json:"userName" bson:"userName"`
+	FirstName string              `json:"firstName" bson:"firstName"`
+	LastName  string              `json:"lastName" bson:"lastName"`
+	PhotoURL  string              `json:"photoURL" bson:"photoURL"`
 }
 
 //Credentials represents user sign-in credentials
 type Credentials struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email    string `json:"email" bson:"email"`
+	Password string `json:"password" bson:"password"`
 }
 
 //NewUser represents a new user signing up for an account
 type NewUser struct {
-	Email        string `json:"email"`
-	Password     string `json:"password"`
-	PasswordConf string `json:"passwordConf"`
-	UserName     string `json:"userName"`
-	FirstName    string `json:"firstName"`
-	LastName     string `json:"lastName"`
+	Email        string `json:"email" bson:"_id"`
+	Password     string `json:"password" bson:"password"`
+	PasswordConf string `json:"passwordConf bson:"passwordConf"`
+	UserName     string `json:"userName" bson:"userName"`
+	FirstName    string `json:"firstName" bson:"firstName"`
+	LastName     string `json:"lastName" bson:"lastName"`
 }
 
 //Updates represents allowed updates to a user profile
 type Updates struct {
-	FirstName string `json:"firstName"`
-	LastName  string `json:"lastName"`
+	FirstName string `json:"firstName" bson:"firstName"`
+	LastName  string `json:"lastName" bson:"lastName"`
 }
 
 //Validate validates the new user and returns an error if

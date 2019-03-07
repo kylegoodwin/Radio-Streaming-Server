@@ -135,7 +135,7 @@ func main() {
 		fmt.Printf("Main.go could not connect to mongodb: %v", err)
 		os.Exit(1)
 	}
-	defer client.Disconnect(context.TODO())
+	defer client.Disconnect(context.Background())
 
 	collection := client.Database("messagingDB").Collection("users")
 

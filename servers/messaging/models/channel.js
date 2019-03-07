@@ -6,7 +6,7 @@ var channelSchema = new Schema({
     description: {type: String, default: ""},
     private: {type: Boolean, default: false},
     members: [{
-        id: Number,
+        id: String,
         userName: String,
         firstName: String,
         lastName: String,
@@ -14,7 +14,7 @@ var channelSchema = new Schema({
     }],
     createdAt: {type: Date, default: Date.now()},
     creator: {
-        id: Number,
+        id: String,
         userName: String,
         firstName: String,
         lastName: String,

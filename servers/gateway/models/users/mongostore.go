@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"gopkg.in/mgo.v2/bson"
 
@@ -35,14 +36,14 @@ func NewMongoStore(col *mongo.Collection) *MongoStore {
 func (ms *MongoStore) PopulateTrie() error {
 	//Grab these fields from all users
 	//nil as the filter will pull all documents
-	cur, err := ms.Collection.Find(context.TODO(), nil, options.Find())
-	defer cur.Close(context.TODO())
+	cur, err := ms.Collection.Find(context.Backgound(), nil, options.Find())
+	defer cur.Close(context.Backgound())
 	if err != nil {
 		return err
 	}
 
 	//For each user in the DB, insert the correct key pairs for that user
-	for cur.Next(context.TODO()) {
+	for cur.Next(context.Backgound()) {
 		//Grab the user's info
 		tempUser := &User{}
 		if err := cur.Decode(&tempUser); err != nil {
@@ -85,14 +86,14 @@ func (ms *MongoStore) InsertUserIntoTrie(user *User) {
 
 	//Insert into the Trie
 	for _, i := range insertionSlice {
-		ms.Trie.Add(i, user.ID)
+		ms.Trie.Add(i, user.ID.Hex())
 	}
 }
 
 //GetByID returns the User with the given ID
 func (ms *MongoStore) GetByID(id string) (*User, error) {
 	user := User{}
-	err := ms.Collection.FindOne(context.TODO(), bson.D{{"_id", id}}).Decode(&user)
+	err := ms.Collection.FindOne(context.Backgound(), bson.D{{"_id", id}}).Decode(&user)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +104,7 @@ func (ms *MongoStore) GetByID(id string) (*User, error) {
 func (ms *MongoStore) GetByEmail(email string) (*User, error) {
 	user := User{}
 	//Uncertain if this will work or if the email needs capitalization in the document key
-	err := ms.Collection.FindOne(context.TODO(), bson.D{{"email", email}}).Decode(&user)
+	err := ms.Collection.FindOne(context.Backgound(), bson.D{{"email", email}}).Decode(&user)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +115,7 @@ func (ms *MongoStore) GetByEmail(email string) (*User, error) {
 func (ms *MongoStore) GetByUserName(username string) (*User, error) {
 	user := User{}
 	//Uncertain if this will work or if the username needs capitalization in the document key
-	err := ms.Collection.FindOne(context.TODO(), bson.D{{"userName", username}}).Decode(&user)
+	err := ms.Collection.FindOne(context.Backgound(), bson.D{{"userName", username}}).Decode(&user)
 	if err != nil {
 		return nil, err
 	}
@@ -124,20 +125,17 @@ func (ms *MongoStore) GetByUserName(username string) (*User, error) {
 //Insert inserts the user into the database, and returns
 //the newly-inserted User, complete with the DBMS-assigned ID
 func (ms *MongoStore) Insert(user *User) (*User, error) {
-	insq := "insert into users(email, pass_hash, user_name, first_name, last_name, photo_URL) values (?,?,?,?,?,?)"
-	res, err := ms.Collection.Exec(insq, user.Email, user.PassHash, user.UserName, user.FirstName, user.LastName, user.PhotoURL)
+	//bsonUser, err := bson.Marshal(user)
+	res, err := ms.Collection.InsertOne(context.Background(), user)
 	if err != nil {
 		return nil, err
 	}
 
 	//get generated ID from insert
-	id, err := res.LastInsertId()
-	if err != nil {
-		return nil, err
+	if oid, ok := res.InsertedID.(primitive.ObjectID); ok {
+		user.ID = &oid
 	}
 
-	//apply it to the user struct and return it
-	user.ID = id
 	return user, nil
 }
 
