@@ -7,7 +7,6 @@ import (
 	"net/mail"
 	"strings"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -20,35 +19,35 @@ var bcryptCost = 13
 
 //User represents a user account in the database
 type User struct {
-	ID        *primitive.ObjectID `json:"id" bson:"_id"`
-	Email     string              `json:"-" bson:"-"` //never JSON encoded/decoded
-	PassHash  []byte              `json:"-" bson:"-"` //never JSON encoded/decoded
-	UserName  string              `json:"userName" bson:"userName"`
-	FirstName string              `json:"firstName" bson:"firstName"`
-	LastName  string              `json:"lastName" bson:"lastName"`
-	PhotoURL  string              `json:"photoURL" bson:"photoURL"`
+	ID        int64  `json:"id"`
+	Email     string `json:"-"` //never JSON encoded/decoded
+	PassHash  []byte `json:"-"` //never JSON encoded/decoded
+	UserName  string `json:"userName"`
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+	PhotoURL  string `json:"photoURL"`
 }
 
 //Credentials represents user sign-in credentials
 type Credentials struct {
-	Email    string `json:"email" bson:"email"`
-	Password string `json:"password" bson:"password"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 //NewUser represents a new user signing up for an account
 type NewUser struct {
-	Email        string `json:"email" bson:"_id"`
-	Password     string `json:"password" bson:"password"`
-	PasswordConf string `json:"passwordConf bson:"passwordConf"`
-	UserName     string `json:"userName" bson:"userName"`
-	FirstName    string `json:"firstName" bson:"firstName"`
-	LastName     string `json:"lastName" bson:"lastName"`
+	Email        string `json:"email"`
+	Password     string `json:"password"`
+	PasswordConf string `json:"passwordConf"`
+	UserName     string `json:"userName"`
+	FirstName    string `json:"firstName"`
+	LastName     string `json:"lastName"`
 }
 
 //Updates represents allowed updates to a user profile
 type Updates struct {
-	FirstName string `json:"firstName" bson:"firstName"`
-	LastName  string `json:"lastName" bson:"lastName"`
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
 }
 
 //Validate validates the new user and returns an error if
@@ -97,7 +96,7 @@ func (nu *NewUser) ToUser() (*User, error) {
 	mdFiver := md5.New()
 	mdFiver.Write([]byte(strings.TrimSpace(strings.ToLower(nu.Email))))
 	u := User{
-		//ID:        0,
+		ID:        0,
 		Email:     nu.Email,
 		PassHash:  []byte{},
 		UserName:  nu.UserName,

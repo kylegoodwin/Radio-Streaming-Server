@@ -9,7 +9,7 @@ import (
 )
 
 //TODO: implement a trie data structure that stores
-//keys of type string and values of type string
+//keys of type string and values of type int64
 
 //Trie is the root of a tree of TrieNodes
 type Trie struct {
@@ -20,7 +20,7 @@ type Trie struct {
 //TrieNode is a struct with a value and a slice of TrieNodes, its children
 type TrieNode struct {
 	key      string
-	values   *[]string
+	values   *[]int64
 	children *[]TrieNode
 }
 
@@ -35,7 +35,7 @@ func NewTrie() *Trie {
 }
 
 //Add adds a new key value pair to the trie, creating new nodes as necessary
-func (t Trie) Add(key string, value string) error {
+func (t Trie) Add(key string, value int64) error {
 
 	var currentNode *TrieNode
 	//Read Lock it
@@ -69,7 +69,7 @@ func (t Trie) Add(key string, value string) error {
 }
 
 //Remove removes the value at the key location and trims empty leaf nodes beneath it.
-func (t Trie) Remove(key string, value string) error {
+func (t Trie) Remove(key string, value int64) error {
 	var currentNode *TrieNode
 	//Readlocking it
 	t.mx.RLock()
@@ -151,7 +151,7 @@ func (t Trie) Remove(key string, value string) error {
 }
 
 //Find returns the first n values that match the provided prefix
-func (t Trie) Find(searchResultCount int, prefix string) ([]string, error) {
+func (t Trie) Find(searchResultCount int, prefix string) ([]int64, error) {
 	t.mx.RLock()
 	prefixNode, err := t.FindNode(prefix, 1)
 	t.mx.RUnlock()
@@ -160,7 +160,7 @@ func (t Trie) Find(searchResultCount int, prefix string) ([]string, error) {
 	}
 
 	//Declare the final slice object and results counter
-	var searchResults []string
+	var searchResults []int64
 	current := 0
 
 	//Run the recursive search
@@ -173,8 +173,8 @@ func (t Trie) Find(searchResultCount int, prefix string) ([]string, error) {
 }
 
 //search is the recursive function used by Find()
-func search(node *TrieNode, goal int, current *int) []string {
-	var returnSlice []string
+func search(node *TrieNode, goal int, current *int) []int64 {
+	var returnSlice []int64
 	for _, v := range *node.values {
 		if goal != *current {
 			returnSlice = append(returnSlice, v)
@@ -307,7 +307,7 @@ func (t Trie) FindNode(key string, mode int) (*TrieNode, error) {
 			if mode == 0 {
 				newNode := &TrieNode{
 					key:      i,
-					values:   &[]string{},
+					values:   &[]int64{},
 					children: &[]TrieNode{},
 				}
 				*currentNode.children = append(*currentNode.children, *newNode)

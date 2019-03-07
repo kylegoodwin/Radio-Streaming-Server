@@ -1,7 +1,7 @@
 package main
 
 import (
-	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -19,9 +19,7 @@ import (
 	"github.com/streadway/amqp"
 
 	"github.com/Radio-Streaming-Server/servers/gateway/handlers"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 //Create docker  network
@@ -126,21 +124,24 @@ func main() {
 	//User and Session store setup
 	//====================================================================================================================================================
 
-	//Create DB object from mongo DB
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://mongo:27017"))
-
-	err = client.Ping(ctx, readpref.Primary())
+	//Create DB object from mySQL DB
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
-		fmt.Printf("Main.go could not connect to mongodb: %v", err)
+		fmt.Printf("Error opening the database: %v", err)
 		os.Exit(1)
 	}
-	defer client.Disconnect(context.Background())
 
-	collection := client.Database("messagingDB").Collection("users")
+	err = db.Ping()
+	if err != nil {
+		fmt.Printf("Error pinging the database: %v", err)
+		os.Exit(1)
+	}
 
-	//Create MongoStore
-	usersStore := users.NewMongoStore(collection)
+	//When comeplete, close the db
+	defer db.Close()
+
+	//Create mysqlstore
+	usersStore := users.NewMySQLStore(db)
 
 	//Create redis connection
 	redisClient := redis.NewClient(&redis.Options{
