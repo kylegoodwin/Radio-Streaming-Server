@@ -9,7 +9,6 @@ class Login extends Component{
           password: "",
           currentUser: "",
           loggedIn:Boolean,
-          
         };
     
         this.handleInputChange = this.handleInputChange.bind(this);
@@ -33,6 +32,10 @@ class Login extends Component{
         }
 
         this.props.loginUser(credentials)
+      }
+
+      componentDidMount(){
+          this.setState({loggedIn:this.props.loggedIn})
       }
     
       render() {
