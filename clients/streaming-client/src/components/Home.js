@@ -1,44 +1,52 @@
 import React, {Component} from 'react';
-import {Link, Route, Redirect} from 'react-router-dom';
+import {Link, Route, Redirect, Switch} from 'react-router-dom';
 import placeholder from '../img/stream-placeholder.png'
+import muaz from '../img/muaz.jpeg'
 
 class Home extends Component{
     constructor(props){
         super(props);
         this.state = {
             streams:[],
-            loggedIn:false
+            loggedIn:true
         };
     };
 
     componentDidMount(){
         //check session token
-        this.setState({loggedIn:this.props.loggedIn})
-        getStreams();
+        //this.setState({loggedIn:this.props.loggedIn})
+        console.log("fucku")
+
+        this.getStreams();
     };
 
     getStreams = () =>{
-        fetch('https://api.radio-stream.com/v1/channels/',{
-            method: "GET",
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        }).then((response) => response.json())
-        .then((data)=>{
-            let retrievedStreams = data.map((streamID) => {
-                return streamID
+        try{
+            fetch('https://audio-api.kjgoodwin.me/v1/audio/streams/',{
+                method: "GET",
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }).then((response) => response.json())
+            .then((data)=>{
+                console.log(data)
+                let retrievedStreams = data.map((streamID) => {
+                    return streamID
+                });
+                this.setState({streams:retrievedStreams});
             });
-            this.setState({streams:retrievedStreams});
-        });
+        } catch(e){
+            console.log(e)
+        }
     };
 
     render(){
-        if(!loggedIn){
+        if(!this.state.loggedIn){
             return <Redirect to="/login"/>
         }
         let streamsArray = this.state.streams.map((stream) => {
             return(
-                <StreamListing streamID={stream} key={stream}/>
+                <StreamListing channelID={stream.channelID} name={stream.displayName} key={stream}/>
             );
         })
         return (
@@ -49,7 +57,7 @@ class Home extends Component{
     };
 };
 
-class StreamListing extends component{
+class StreamListing extends Component{
     constructor(props){
         super(props);
         this.state = {
@@ -76,15 +84,19 @@ class StreamListing extends component{
     };
 
     componentDidMount(){
-        getStreamInfo();
+        this.getStreamInfo();
     };
 
     render(){
         let path = "/channels/" + this.props.channelID;
         return(
             <Link className="stream-listing" to={path}>
-                <img src={this.state.photoUrl} />
-                <h1>{this.state.name}</h1>
+                <img className="stream-img" src={muaz} />
+                <div className="stream-listing-info">
+                    <h1>{this.props.name}</h1>
+                    <h2>Streamer</h2>
+                </div>
+                
             </Link>
         )
     }

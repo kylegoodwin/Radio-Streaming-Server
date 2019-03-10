@@ -34,11 +34,11 @@ class StartStream extends Component{
 
     handleSubmit = (event) =>{
         event.preventDefault();
-        startStream(this.state.streamName)
+        this.startStream(this.state.streamName)
     }
 
     componentDidMount(){
-        getUserInfo();
+        this.getUserInfo();
     }
 
     render(){

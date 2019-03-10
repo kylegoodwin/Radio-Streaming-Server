@@ -23,6 +23,115 @@
   color: #61dafb;
 }
 
+.stream-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.stream-listing {
+margin: 1em;
+ max-height: 10em;
+ display: flex;
+ flex-direction: row;
+ text-decoration: none!important;
+ color: black;
+ background: #535353;
+ cursor: default;
+}
+
+.stream-listing-info > h1:hover{
+  color: darkgrey;
+  cursor: pointer;
+}
+
+.stream-listing-info{
+  display:flex;
+  flex-direction: column;
+}
+
+.stream-img {
+  max-height: inherit;
+  margin-right: 1em;
+}
+
+.streamy{
+  display:flex;
+  flex-direction: row;
+  max-height: 10em;
+  width:inherit;
+  align-items: left;
+  margin-bottom: 1em;
+  background:  #535353;
+}
+
+.stream-title{
+  margin:0;
+}
+
+.stream-player-info{
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  width: inherit
+}
+
+.stream-and-comments{
+  display: flex;
+  flex-direction: column;
+  align-self: center;
+  margin-left:10em;
+  margin-right: 10em;
+  width: 80%;
+  align-self: center;
+}
+
+.comments{
+  display: flex;
+  flex-direction: column;
+}
+
+.player{
+  width:inherit;
+}
+
+.cropper {
+  width: 4em;
+  height: 4em;
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.comment-img{
+  width: 4em;
+  height: 4em;
+}
+
+.comment{
+  height: 5em;
+  width: inherit;
+  display: flex;
+  flex-direction: row;
+  margin: .5em;
+  border-color: lightgray;
+  align-items: center;
+}
+
+.comment-user{
+  background:lightgray;
+  display: flex;
+  flex-direction: row;
+  height: inherit;
+  padding: .25em;
+  align-items: center;
+  margin-right: 1em;
+}
+
+.comment-username{
+  display: flex;
+  align-items: center;
+  padding: 1em;
+}
+
 @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);
