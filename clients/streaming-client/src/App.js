@@ -2,14 +2,16 @@ import React, { Component } from 'react';
 import logo from './logo.svg';
 import './App.css';
 import Home from './components/Home'
-import {Link, Route} from 'react-router-dom';
+import {Link, Route, Switch} from 'react-router-dom';
 import StartStream from './components/StartStream';
+import Login from './components/Login';
+import AudioStream from './components/AudioStream';
 
 class App extends Component {
   constructor(props){
       super(props);
       this.state = {
-          loggedIn: false,
+          loggedIn: true,
           currentUser:{}
       };
   };
@@ -39,6 +41,7 @@ class App extends Component {
                         <Login {...routerProps} loginUser={this.loginUser.bind(this)} loggedIn={this.state.loggedIn} />
                     )} />
         <Route path="/start-stream" component={StartStream} />
+        <Route path="/channels/" component={AudioStream} />
       </Switch>
     );
   }

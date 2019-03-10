@@ -39,7 +39,7 @@ class Login extends Component{
       }
     
       render() {
-        if(loggedIn){
+        if(this.loggedIn){
             return <Redirect to="/"/>
         } else {
             return (
@@ -67,4 +67,4 @@ class Login extends Component{
       }
 }
 
-export default withRouter(Login)
+export default (Login)
