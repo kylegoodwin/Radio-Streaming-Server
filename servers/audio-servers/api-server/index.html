@@ -86,12 +86,14 @@ connection.connectSocket(function(socket) {
             if (!isBroadcastExists) {
                 // the first person (i.e. real-broadcaster) MUST set his user-id
                 connection.userid = broadcastId;
+                connection.clientChannelName = "FUCK CONNOR"
                // connection.userid = "gorgomish"
             }
 
             socket.emit('join-broadcast', {
                 broadcastId: broadcastId,
                 userid: connection.userid,
+                clientChannelName: connection.clientChannelName,
                 typeOfStreams: connection.session
             });
         });

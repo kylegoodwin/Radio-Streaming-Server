@@ -1,4 +1,5 @@
-var app = require('express')();
+var express = require('express');
+var app = express();
 var fs = require('fs')
 var mdport = process.env.MDPORT;
 var http = require('http').createServer(app);
@@ -19,10 +20,32 @@ var db = mongoose.connection;
 
 var Stream = require("./stream-schema");
 
+app.use(express.json());
+
 app.get('/v1/audio', function(req, res){
   res.sendFile(__dirname + '/index.html');
 });
 
+
+app.patch("/v1/audio/stream/:streamID", function(req,res){
+
+  let id = req.params.streamID;
+  let newName = req.body.name;
+
+  Stream.findOneAndUpdate({channelID: id }, {displayName: newName}, { new: true }, function(err,doc,response){
+
+    if(err){
+      console.log(err);
+    }else{
+      res.json(response);
+    }
+    
+
+  });
+    
+  
+
+});
 
 app.get('/v1/audio/rtcjs',function(req,res){
     res.sendFile(__dirname + "/dist/RTCMultiConnection.min.js")

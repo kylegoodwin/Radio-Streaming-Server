@@ -90,10 +90,16 @@ module.exports = exports = function (config, socket, maxRelayLimitPerUser) {
             } else {
                 broadcasts.push(user.broadcastId);
                 users[user.userid].isBroadcastInitiator = true;
+     
+                var name = "New Stream";
+                if(user.clientChannelName){
+                    name = user.clientChannelName;
+                }
+
 
                 let broadcast = new Stream ({
                     channelID: user.broadcastId,
-                    displayName: "User Defined Name",
+                    displayName: name,
                     createdAt: Date.now(),
                     creator: 0,
                 });
