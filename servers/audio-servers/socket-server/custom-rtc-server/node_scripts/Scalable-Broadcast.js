@@ -90,16 +90,12 @@ module.exports = exports = function (config, socket, maxRelayLimitPerUser) {
             } else {
                 broadcasts.push(user.broadcastId);
                 users[user.userid].isBroadcastInitiator = true;
-                
-                console.log("before the db stuff");
 
                 let broadcast = new Stream ({
-                    streamChannelID: 1,
-                    name: user.broadcastId,
+                    channelID: user.broadcastId,
+                    displayName: "User Defined Name",
                     createdAt: Date.now(),
                     creator: 0,
-                    active: true,
-                    activelisteners: 0
                 });
         
                 
@@ -228,12 +224,19 @@ module.exports = exports = function (config, socket, maxRelayLimitPerUser) {
                 notifyBroadcasterAboutNumberOfViewers(user.broadcastId, true);
             } else {
 
-                console.log("HERERERERER")
                 var index = broadcasts.indexOf(user.broadcastId);
                 if (index > -1) {
                     broadcasts.splice(index, 1);
-
                 }
+
+                Stream.deleteOne({channelID: user.broadcastId}, function(err){
+
+                    if(err){
+                        console.log("error, stream was not successfully deleted");
+                    }
+
+                    console.log("stream successfully deleted");
+                });
 
             }
 
