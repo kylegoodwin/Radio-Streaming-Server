@@ -9,26 +9,6 @@ var port = process.env.PORT || 3001;
 
 const RTCMultiConnectionServer = require('./custom-rtc-server');
 
-/*
-var mongoose = require("mongoose");
-
-var db;
-
-var mongourl = "mongodb://" + mdport
-
-mongoose.connect(mongourl)
-
-// Get Mongoose to use the global promise library
-mongoose.Promise = global.Promise;
-//Get the default connection
-var db = mongoose.connection;
-
-//Bind connection to error event (to get notification of connection errors)
-db.on('error', console.error.bind(console, 'MongoDB connection error:'));
-*/
-
-
-//var stream = require("./custom-rtc-server/node_scripts/stream-schema")
 
 const jsonPath = {
     config: 'config.json',
@@ -38,22 +18,19 @@ const jsonPath = {
 
 io.on('connection', function(socket){
 
-    console.log("here")
     RTCMultiConnectionServer.addSocket(socket);
 
     // ----------------------
     // below code is optional
-    console.log("socker ")
-    //console.log(socket._events.get-public-rooms);
+
     const params = socket.handshake.query;
     console.log(params.socketCustomEvent)
     if (!params.socketCustomEvent) {
-        
         params.socketCustomEvent = 'custom-message';
     }
 
     socket.on(params.socketCustomEvent, function (message) {
-        console.log("HAPPENING")
+        console.log(message)
         socket.broadcast.emit(params.socketCustomEvent, message);
     });
 });

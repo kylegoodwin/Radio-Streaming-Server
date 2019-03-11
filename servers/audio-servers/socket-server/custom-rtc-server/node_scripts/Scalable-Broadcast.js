@@ -96,13 +96,19 @@ module.exports = exports = function (config, socket, maxRelayLimitPerUser) {
                     name = user.clientChannelName;
                 }
 
-
+                /*
                 let broadcast = new Stream ({
                     channelID: user.broadcastId,
-                    displayName: name,
+                    displayName: user.broadcastId,
+                    discription: "",
+                    genre: "Any",
                     createdAt: Date.now(),
+                    goLiveTime: Date.now(),
                     creator: 0,
+                    followers: [],
+                    active: true
                 });
+                
         
                 
                 broadcast.save(function (err) {
@@ -113,6 +119,16 @@ module.exports = exports = function (config, socket, maxRelayLimitPerUser) {
                     }
                     console.log("channel created in db");
                 });
+                */
+
+               Stream.findOneAndUpdate({ channelID: user.broadcastId},{active: true}, function(err){
+
+                if(err){
+                    console.log("error updating the current socket");
+                }
+
+                console.log("stream successfully posted as active");
+            });
 
                 socket.emit('start-broadcasting', users[user.userid].typeOfStreams);
 
@@ -216,8 +232,6 @@ module.exports = exports = function (config, socket, maxRelayLimitPerUser) {
     // this even is called from "signaling-server.js"
     socket.ondisconnect = function () {
 
-
-
         console.log("THE DISCCONET IS ALSO HAPPENING HERE")
         try {
             if (!socket.isScalableBroadcastSocket) return;
@@ -235,6 +249,7 @@ module.exports = exports = function (config, socket, maxRelayLimitPerUser) {
                     broadcasts.splice(index, 1);
                 }
 
+                /*
                 Stream.deleteOne({channelID: user.broadcastId}, function(err){
 
                     if(err){
@@ -243,6 +258,20 @@ module.exports = exports = function (config, socket, maxRelayLimitPerUser) {
 
                     console.log("stream successfully deleted");
                 });
+                */
+
+
+                Stream.findOneAndUpdate({ channelID: user.broadcastId},{active: false}, function(err){
+
+                    if(err){
+                        console.log("error, stream was not successfully deleted");
+                    }
+
+                    console.log("stream successfully went down");
+                });
+                
+
+
 
             }
 
