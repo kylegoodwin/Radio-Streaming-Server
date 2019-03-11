@@ -1,13 +1,15 @@
 const Message = require('../models/messageModel.js');
 const rabbit = require("./rabbit_handler")
 
-exports.newMessage = function(req, res, channelID, messageCreator){
+exports.newMessage = function(req, res){
     console.log(req.body.body)
+    var channelID = req.params.channelID
+    var currentUser = parseInt(req.get("X-User"), 10)
     var m = Message({
         channelID: channelID,
         body: req.body.body,
         createdAt: Date.now(),
-        creator: messageCreator
+        creator: currentUser
     })
     m.save(function(err) {
         if (err) {
@@ -24,8 +26,8 @@ exports.newMessage = function(req, res, channelID, messageCreator){
 }
 
 exports.specificMessage = function(req, res, next){
-    var urlSplit = req.originalUrl.split("/")
-    var messageID = parseInt(urlSplit[urlSplit.length-1], 10)
+    //var urlSplit = req.originalUrl.split("/")
+    var messageID = req.params.channelID
     var currentUser = parseInt(req.get("X-User"), 10)
     console.log(messageID + " messageID")
 
