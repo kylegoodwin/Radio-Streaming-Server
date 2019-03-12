@@ -1,8 +1,7 @@
 sh build.sh
 docker push kjgoodwins/server-api
 docker push kjgoodwins/mysql
-docker push kjgoodwins/message-service
-docker push kjgoodwins/summary-service
+docker push kjgoodwins/message-service-new
 
 ssh -tt ec2-user@18.211.146.1 << EOF
 docker rm -f api
@@ -11,9 +10,7 @@ docker rm -f summary1
 
 docker pull kjgoodwins/server-api
 docker pull kjgoodwins/mysql
-docker pull kjgoodwins/message-service
-docker pull kjgoodwins/summary-service
-
+docker pull kjgoodwins/message-service-new
 
 docker network create site
 
@@ -39,15 +36,8 @@ docker run -d \
 --name message1 \
 -e NAME=message1 \
 -e PORT=5001 \
--e MDPORT=mongodb:27017 \
-kjgoodwins/message-service
-
-docker run -d \
---network site \
---name summary1 \
--e ADDR=:5003 \
-kjgoodwins/summary-service
-
+-e MONGOPORT=mongodb:27017 \
+kjgoodwins/message-service-new
 
 docker run -d -p 443:443 --network site -v /etc/letsencrypt:/etc/letsencrypt \
 -e TLSKEY=/etc/letsencrypt/live/audio-api.kjgoodwin.me/privkey.pem \

@@ -8,12 +8,8 @@ docker build -t kjgoodwins/mysql .
 
 cd ..
 cd messaging
-docker build -t kjgoodwins/message-service .
+docker build -t kjgoodwins/message-service-new .
 
-cd ..
-cd summary
-GOOS=linux go build
-docker build -t kjgoodwins/summary-service .
 go clean
 
 

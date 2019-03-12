@@ -8,7 +8,13 @@ let streamSchema = new Schema({
     genre: {type: String, required: true},
     createdAt: {type: Date, required: true, default: Date.now},
     goLiveTime: {type: Date, required: false},
-    creator: {type: Number, required: true},
+    creator: {
+        id: Number,
+        userName: String,
+        firstName: String,
+        lastName: String,
+        photoURL: String
+    },
     active: {type: Boolean, required: true},
     followers: {type: [Number], required: true}
 });

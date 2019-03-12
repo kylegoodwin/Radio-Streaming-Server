@@ -22,6 +22,19 @@ var Stream = require("./stream-schema");
 
 app.use(express.json());
 
+app.use(function (req, res, next) {
+
+  let xUserValue = req.get("X-User")
+  if (xUserValue == undefined) {
+      const err = new Error('User Not Authenticated');
+      err.status = 401;
+      next(err);
+  } else {
+      next()
+  }
+
+})
+
 app.get('/v1/audio/client', function (req, res) {
   res.sendFile(__dirname + '/index.html');
 });
@@ -55,10 +68,11 @@ app.patch("/v1/audio/channels/:streamID", function (req, res) {
 app.post("/v1/audio/channel", function (req, res) {
 
   //Get the user sending the request
-  var currentUser = 0;
+  var currentUser = {};
   if (req.header("X-User")) {
-    currentUser = parseInt(req.header("X-User"), 10);
+    currentUser = JSON.parse(req.header("X-User"));
   }
+
   //currentUser = parseInt(req.header("X-User"),10);
   console.log("channnelidtest");
   console.log(req.body);
