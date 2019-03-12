@@ -51,5 +51,5 @@ docker run -d -p 443:443 --network site -v /etc/letsencrypt:/etc/letsencrypt \
 --name api \
 kjgoodwins/server-api
 
-
+exit
 EOF

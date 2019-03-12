@@ -3,7 +3,7 @@ const AutoIncrement = require('mongoose-sequence')(mongoose);
 const Schema = mongoose.Schema;
 
 let messageSchema = new Schema({
-    streamID: {type: Number, required: true},
+    channelID: {type: String, required: true},
     body: {type: String, required: true},
     createdAt: {type: Date, required: true, default: Date.now},
     creator: {

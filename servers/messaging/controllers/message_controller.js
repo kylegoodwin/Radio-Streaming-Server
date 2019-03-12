@@ -15,7 +15,7 @@ exports.newMessage = function(req, res){
     m.save(function(err) {
         if (err) {
             res.status = 500;
-            res.send("Error saving new message");
+            res.send("Error saving new message " + err);
             return
         }
         res.status = 201

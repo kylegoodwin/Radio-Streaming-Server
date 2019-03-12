@@ -16,7 +16,7 @@ let streamSchema = new Schema({
         photoURL: String
     },
     active: {type: Boolean, required: true},
-    listeners: {type: [Number], required: true},
+    activeListeners: {type: [Number], required: true},
     followers: {type: [Number], required: true}
 });
 
