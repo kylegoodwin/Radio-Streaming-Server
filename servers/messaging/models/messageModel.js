@@ -6,7 +6,13 @@ let messageSchema = new Schema({
     streamID: {type: Number, required: true},
     body: {type: String, required: true},
     createdAt: {type: Date, required: true, default: Date.now},
-    creator: {type: Number, required: true},
+    creator: {
+        id: Number,
+        userName: String,
+        firstName: String,
+        lastName: String,
+        photoURL: String
+    },
     editedAt: {type: Date}
 });
 

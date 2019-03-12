@@ -14,11 +14,11 @@ exports.sendMessage = function(channelID, type, data, dataName, members) {
             type: type,
         }
 
-        if(!res.members){
-            messageObj.userIDs = members
-        } else {
-            messageObj.userIDs = res.members
-        }
+        // if(!res.listeners){
+        //     messageObj.userIDs = members
+        // } else {
+            messageObj.userIDs = res.listeners
+        //}
 
    
         messageObj[dataName] = data
@@ -27,7 +27,7 @@ exports.sendMessage = function(channelID, type, data, dataName, members) {
    
          amqp.connect('amqp://rabbit', function(err, conn) {
            conn.createChannel(function(err, ch) {
-               var q = 'Messages';
+               var q = 'messages';
    
                ch.assertQueue(q, {durable: true});
                // Note: on Node 6 Buffer.from(msg) should be used

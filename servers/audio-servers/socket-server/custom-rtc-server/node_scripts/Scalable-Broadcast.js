@@ -112,6 +112,7 @@ Stream.findOneAndUpdate({ channelID: user.broadcastId},{active: true}, function(
 
                 */
 
+                
                 Stream.findOneAndUpdate({ channelID: user.broadcastId }, { active: true }, function (err,response) {
 
                     if (err) {
