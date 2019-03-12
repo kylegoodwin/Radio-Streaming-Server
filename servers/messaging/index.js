@@ -6,7 +6,7 @@ const channel_controller = require('./controllers/channel_controller.js');
 
 const port = process.env.PORT;
 const instanceName = process.env.NAME;
-const mongoPort = process.env.MONGOPORT;
+const mongoPort = "27017";//process.env.MONGOPORT;
 const routes = require('./routes/routes.js')
 const http = require('http').Server(app)
 

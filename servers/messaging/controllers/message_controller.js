@@ -4,7 +4,8 @@ const rabbit = require("./rabbit_handler")
 exports.newMessage = function(req, res){
     console.log(req.body.body)
     var channelID = req.params.channelID
-    var currentUser = parseInt(req.get("X-User"), 10)
+    //var currentUser = parseInt(req.get("X-User"), 10)
+    var currentUser = JSON.parse(req.header("X-User"));
     var m = Message({
         channelID: channelID,
         body: req.body.body,
@@ -28,7 +29,8 @@ exports.newMessage = function(req, res){
 exports.specificMessage = function(req, res, next){
     //var urlSplit = req.originalUrl.split("/")
     var messageID = req.params.channelID
-    var currentUser = parseInt(req.get("X-User"), 10)
+    //var currentUser = parseInt(req.get("X-User"), 10)
+    var currentUser = JSON.parse(req.header("X-User"));
     console.log(messageID + " messageID")
 
     //find message from the url
