@@ -22,10 +22,13 @@ var Stream = require("./stream-schema");
 
 app.use(express.json());
 
-app.get('/v1/audio', function (req, res) {
+app.get('/v1/audio/client', function (req, res) {
   res.sendFile(__dirname + '/index.html');
 });
 
+app.get('/v1/audio/directclient/*', function (req, res) {
+  res.sendFile(__dirname + '/test-client.html');
+});
 
 app.patch("/v1/audio/channels/:streamID", function (req, res) {
 

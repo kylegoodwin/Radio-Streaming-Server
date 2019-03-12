@@ -7,165 +7,81 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+
 	"os"
 	"strings"
-	"sync"
 	"time"
 
-	"github.com/Radio-Streaming-Server/servers/gateway/models/users"
-	"github.com/Radio-Streaming-Server/servers/gateway/sessions"
-	"github.com/go-redis/redis"
-	"github.com/gorilla/websocket"
+	"github.com/kylegoodwin/assignments-kylegoodwin/servers/gateway/models/logins"
 	"github.com/streadway/amqp"
 
-	"github.com/Radio-Streaming-Server/servers/gateway/handlers"
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/kylegoodwin/assignments-kylegoodwin/servers/gateway/sessions"
+
+	"github.com/kylegoodwin/assignments-kylegoodwin/servers/gateway/models/users"
+
+	"github.com/go-redis/redis"
+
+	"github.com/kylegoodwin/assignments-kylegoodwin/servers/gateway/handlers"
 )
 
-//Create docker  network
-// docker network create __networkname__
-// docker run -d --name redisServer --network __networkname__ redis
-
-// Run docker container for mysql server ??
-// sudo docker run -d --name mysqlServer --network gatewayNetwork -e MYSQL_ROOT_PASSWORD=PASS -e MYSQL_DATABASE=db zanewebb/zanemysql
-
-//DSN will be something like username:password@protocol(address)/dbname
-//							root:PASSWORD@tcp(dockerhostname)/dbname
-
-func testHandler(w http.ResponseWriter, r *http.Request) {
-	//log.Printf("Received a request and handled with testHandler")
-	w.Write([]byte("Handled the test request"))
-}
-
-func failOnError(err error, msg string) {
-	if err != nil {
-		log.Fatalf("%s: %s", msg, err)
-	}
-}
+//main is the main entry point for the server
 
 func main() {
 
-	//Environment variable parsing and setup
-	//====================================================================================================================================================
-	ADDR := os.Getenv("ADDR")
-	if len(ADDR) == 0 {
-		ADDR = ":443"
-		//ADDR = ":8888"
-	}
+	fmt.Println("just testing print")
 
-	//Include these when you deploy
-	TLSCERT := os.Getenv("TLSCERT")
-	if len(TLSCERT) == 0 {
-		fmt.Println("TLSCERT env variable was not set")
-		os.Exit(1)
-	}
+	//Microservice Addresses
 
-	TLSKEY := os.Getenv("TLSKEY")
-	if len(TLSKEY) == 0 {
-		fmt.Println("TLSKEY env variable was not set")
-		os.Exit(1)
-	}
+	SUMMARYADDRS := strings.Split(os.Getenv("SUMMARYADDRS"), ",")
+	MESSAGESADDRS := strings.Split(os.Getenv("MESSAGESADDRS"), ",")
 
+	addr := os.Getenv("ADDR")
+	key := os.Getenv("TLSKEY")
+	cert := os.Getenv("TLSCERT")
 	sessionkey := os.Getenv("SESSIONKEY")
-	if len(sessionkey) == 0 {
-		fmt.Println("SESSIONKEY env variable was not set")
-		os.Exit(1)
-	}
-
 	redisaddr := os.Getenv("REDISADDR")
-	if len(redisaddr) == 0 {
-		//redisaddr = "172.17.0.2:6379"
-		redisaddr = "redisServer:6379"
+	dbaddr := os.Getenv("DBADDR")
+	dsn := fmt.Sprintf("root:%s@tcp(%s)/website", os.Getenv("MYSQL_ROOT_PASSWORD"), dbaddr)
+
+	if sessionkey == "" {
+		fmt.Errorf("Session key was not defined")
 	}
 
-	//3306
-	dsn := os.Getenv("DSN")
-	if len(dsn) == 0 {
-		fmt.Println("DSN env variable was not set")
-		os.Exit(1)
-	}
+	options := redis.Options{}
+	options.Addr = redisaddr
+	redisClient := redis.NewClient(&options)
 
-	MESSAGESADDR := os.Getenv("MESSAGESADDR")
-	if len(MESSAGESADDR) == 0 {
-		fmt.Println("MESSAGESADDR env variable was not set")
-		os.Exit(1)
-	}
-	//Parse comma delimited service URL strings and turn them into URL objects
-	msgAddresses := strings.Split(MESSAGESADDR, ",")
-	var msgURLs []*url.URL
-	for _, s := range msgAddresses {
-		fmt.Printf("Parsing addr of: %s", s)
-		u, err := url.Parse(s)
-		if err != nil {
-			fmt.Printf("Error parsing message URLs: %v", err)
-			os.Exit(1)
-		}
-		msgURLs = append(msgURLs, u)
-	}
-
-	// SUMMARYADDR := os.Getenv("SUMMARYADDR")
-	// if len(SUMMARYADDR) == 0 {
-	// 	fmt.Println("SUMMARYADDR env variable was not set")
-	// 	os.Exit(1)
-	// }
-	//Parse comma delimited service URL strings and turn them into URL objects
-	// summaryAddresses := strings.Split(SUMMARYADDR, ",")
-	// var summarURLs []*url.URL
-	// for _, s := range summaryAddresses {
-	// 	fmt.Printf("Parsing addr of: %s", s)
-	// 	u, err := url.Parse(s)
-	// 	if err != nil {
-	// 		fmt.Printf("Error parsing message URLs: %v", err)
-	// 		os.Exit(1)
-	// 	}
-	// 	summarURLs = append(summarURLs, u)
-	// }
-
-	//User and Session store setup
-	//====================================================================================================================================================
-
-	//Create DB object from mySQL DB
 	db, err := sql.Open("mysql", dsn)
+
 	if err != nil {
-		fmt.Printf("Error opening the database: %v", err)
-		os.Exit(1)
+		fmt.Errorf("Error opening sql database")
+
 	}
 
-	err = db.Ping()
+	context := handlers.HandlerContext{}
+	context.Key = sessionkey
+	context.User = users.NewDBConnection(db)
+	context.Session = sessions.NewRedisStore(redisClient, time.Hour)
+	context.Login = logins.NewDBConnection(db)
+	context.Trie, err = context.User.BuildTrie()
+	context.Sockets = handlers.EstablishSockets()
+
 	if err != nil {
-		fmt.Printf("Error pinging the database: %v", err)
-		os.Exit(1)
+		fmt.Errorf("Error building search Trie")
 	}
 
-	//When comeplete, close the db
-	defer db.Close()
+	if len(addr) == 0 {
+		addr = ":443"
+	}
 
-	//Create mysqlstore
-	usersStore := users.NewMySQLStore(db)
+	if cert == "" || key == "" {
+		log.Fatal("Certificates not set")
+	}
 
-	//Create redis connection
-	redisClient := redis.NewClient(&redis.Options{
-		Addr: redisaddr,
-	})
+	//RabitMQ Creation
 
-	//Create redisstore
-	sessionStore := sessions.NewRedisStore(redisClient, time.Hour)
-
-	//Create context
-	cont := handlers.NewContext(sessionkey, sessionStore, usersStore)
-
-	//Initialize the tree on server startup
-	cont.UsersStore.PopulateTrie()
-
-	//Microservice reverse proxy setup
-	//====================================================================================================================================================
-	//It wants a URL not a string, example from exercise does not consider this issue
-	messagingRProxy := &httputil.ReverseProxy{Director: cont.UserDirector(msgURLs)}
-	//summaryRProxy := &httputil.ReverseProxy{Director: cont.UserDirector(summarURLs)}
-
-	//RabbitMQ Setup 5672
-	//====================================================================================================================================================
-	conn, err := amqp.Dial("amqp://guest:guest@rabbitmq:5672/")
+	conn, err := amqp.Dial("amqp://guest:guest@rabbit:5672/")
+	fmt.Println(err)
 	failOnError(err, "Failed to connect to RabbitMQ")
 	defer conn.Close()
 
@@ -174,16 +90,15 @@ func main() {
 	defer ch.Close()
 
 	q, err := ch.QueueDeclare(
-		"MessagingQ", // name
-		false,        // durable
-		false,        // delete when unused
-		false,        // exclusive
-		false,        // no-wait
-		nil,          // arguments
+		"messages", // name
+		true,       // durable
+		false,      // delete when unused
+		false,      // exclusive
+		false,      // no-wait
+		nil,        // arguments
 	)
 	failOnError(err, "Failed to declare a queue")
 
-	//When main consumes from the queue, its only job is to send back to the clients that something has occured in messaging.js
 	msgs, err := ch.Consume(
 		q.Name, // queue
 		"",     // consumer
@@ -195,36 +110,79 @@ func main() {
 	)
 	failOnError(err, "Failed to register a consumer")
 
-	//WebSocket Setup
-	//===================================================================================================================================================
-	//Create SocketStore
-	wss := &handlers.SocketStore{
-		Connections: make(map[int64]*websocket.Conn),
-		Lock:        &sync.Mutex{},
-		Cont:        cont,
+	//forever := make(chan bool)
+
+	go context.Sockets.SendMessages(msgs)
+
+	/*
+		func() {
+			for d := range msgs {
+				//log.Printf("Received a message: %s", d.Body)
+				var result map[string]string
+				json.Unmarshal([]byte(d.Body), &result)
+				fmt.Println("a message was recieved")
+				context.Sockets.SendMessageToUsers([]int64{1}, result["channel"])
+			}
+		}()
+
+		log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
+	*/
+
+	var parsedMessageURLS []*url.URL
+	var parsedSummaryURLS []*url.URL
+
+	for _, messageURL := range MESSAGESADDRS {
+		tempMessageURL, err := url.Parse(messageURL)
+		if err != nil {
+			fmt.Errorf("Messages URL not working")
+		}
+		parsedMessageURLS = append(parsedSummaryURLS, tempMessageURL)
+
 	}
 
-	//Go routine kicked off, ready to read from rabbit queue
-	go wss.SendMessages(msgs)
+	for _, summaryURL := range SUMMARYADDRS {
+		tempSummaryURL, err := url.Parse(summaryURL)
+		if err != nil {
+			fmt.Errorf("Summary URL not working")
+		}
+		parsedSummaryURLS = append(parsedSummaryURLS, tempSummaryURL)
+	}
+	aURL, _ := url.Parse("http://audio-api:80")
+	parsedAudioURLS := []*url.URL{aURL}
+	messageProxy := &httputil.ReverseProxy{Director: handlers.CustomDirector(parsedMessageURLS, context)}
+	summaryProxy := &httputil.ReverseProxy{Director: handlers.CustomDirector(parsedSummaryURLS, context)}
+	audioProxy := &httputil.ReverseProxy{Director: handlers.CustomDirector(parsedAudioURLS, context)}
 
-	//Go mux setup
-	//===================================================================================================================================================
+	//New mux
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/v1/ws", wss.SocketConnectionHandler)
-	mux.HandleFunc("/v1/users", cont.UsersHandler)
-	mux.HandleFunc("/v1/users/", cont.SpecificUserHandler)
-	mux.HandleFunc("/v1/sessions", cont.SessionsHandler)
-	mux.HandleFunc("/v1/sessions/", cont.SpecificSessionHandler)
-	mux.HandleFunc("/v1/test", testHandler)
-	//mux.Handle("/v1/summary", summaryRProxy)
-	mux.Handle("/v1/channels", messagingRProxy)
-	mux.Handle("/v1/channels/", messagingRProxy)
-	mux.Handle("/v1/messages/", messagingRProxy)
+	//Handle the v1 call
+	/*
+		mux.Handle("/socket.io/", audioProxy)
+		mux.Handle("/socket.io", audioProxy)
+	*/
+	mux.Handle("/v1/audio", audioProxy)
+	mux.Handle("/v1/audio/", audioProxy)
+	mux.Handle("/v1/summary", summaryProxy)
+	mux.Handle("/v1/channels", messageProxy)
+	mux.Handle("/v1/channels/", messageProxy)
+	mux.Handle("/v1/messages", messageProxy)
+	mux.Handle("/v1/messages/", messageProxy)
+	mux.HandleFunc("/ws", context.WSUpgrade)
+	mux.HandleFunc("/v1/users", context.UsersHandler)
+	mux.HandleFunc("/v1/users/", context.SpecificUserHandler)
+	mux.HandleFunc("/v1/sessions", context.SessionsHandler)
+	mux.HandleFunc("/v1/sessions/", context.SpecificSessionHandler)
 
-	wrappedMux := handlers.NewCors(mux)
+	wrapper := &handlers.Cors{}
+	wrapper.Handler = mux
 
-	log.Printf("Server running and listening on %s", ADDR)
-	//log.Fatal(http.ListenAndServe(ADDR, wrappedMux))
-	log.Fatal(http.ListenAndServeTLS(ADDR, TLSCERT, TLSKEY, wrappedMux))
+	log.Fatal(http.ListenAndServeTLS(addr, cert, key, wrapper))
+
+}
+
+func failOnError(err error, msg string) {
+	if err != nil {
+		log.Fatalf("%s: %s", msg, err)
+	}
 }

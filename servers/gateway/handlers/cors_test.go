@@ -1,51 +1,48 @@
-package handlers_test
+package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/Radio-Streaming-Server/servers/gateway/handlers"
 )
 
 func TestCors(t *testing.T) {
-	var nilHandler http.Handler
 
+	request := httptest.NewRequest("GET", "/v1/users", nil)
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodOptions, "/v1/users/", nil)
 
 	var testHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("IWDLAMWLDN"))
+		w.Write([]byte("bar"))
 	})
 
-	cors := handlers.NewCors(nilHandler)
-	if cors != nil {
-		t.Errorf("Expected constructor to return nil but it did not")
-	}
-
-	cors = handlers.NewCors(testHandler)
-	if cors == nil {
-		t.Errorf("Expected constructor to not return nil but it did")
-	}
+	cors := Cors{}
+	cors.Handler = testHandler
 
 	cors.ServeHTTP(recorder, request)
 
 	response := recorder.Result()
 
+	fmt.Println(response)
+
 	if response.Header.Get("Access-Control-Allow-Origin") != "*" {
-		t.Errorf("Header 1 did not get added")
+		t.Errorf("Expected Access-Control-Allow-Origin to equal * but got %s", response.Header.Get("Access-Control-Allow-Origin"))
 	}
+
 	if response.Header.Get("Access-Control-Allow-Methods") != "GET, PUT, POST, PATCH, DELETE" {
-		t.Errorf("Header 2 did not get added")
+		t.Errorf("Expected Access-Control-Allow-Methods to equal GET, PUT, POST, PATCH, DELETE but got %s", response.Header.Get("Access-Control-Allow-Methods"))
 	}
+
 	if response.Header.Get("Access-Control-Allow-Headers") != "Content-Type, Authorization" {
-		t.Errorf("Header 3 did not get added")
+		t.Errorf("Expected Access-Control-Allow-Headers to equal Content-Type, Authorization but got %s", response.Header.Get("Access-Control-Allow-Headers"))
 	}
+
 	if response.Header.Get("Access-Control-Expose-Headers") != "Authorization" {
-		t.Errorf("Header 4 did not get added")
+		t.Errorf("Expected Access-Control-Expose-Headers to equal Authorization but got %s", response.Header.Get("Access-Control-Expose-Headers"))
 	}
+
 	if response.Header.Get("Access-Control-Max-Age") != "600" {
-		t.Errorf("Header 5 did not get added")
+		t.Errorf("Expected Access-Control-Max-Age to equal 600 but got %s", response.Header.Get("Access-Control-Max-Age"))
 	}
 
 }

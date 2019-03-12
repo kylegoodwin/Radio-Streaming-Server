@@ -2,6 +2,8 @@ package users
 
 import (
 	"errors"
+
+	"github.com/kylegoodwin/assignments-kylegoodwin/servers/gateway/indexes"
 )
 
 //ErrUserNotFound is returned when the user can't be found
@@ -22,13 +24,13 @@ type Store interface {
 	//the newly-inserted User, complete with the DBMS-assigned ID
 	Insert(user *User) (*User, error)
 
-	//InsertSignIn
-	InsertSignIn(int64, string) (int64, error)
-
 	//Update applies UserUpdates to the given user ID
 	//and returns the newly-updated user
 	Update(id int64, updates *Updates) (*User, error)
 
 	//Delete deletes the user with the given ID
 	Delete(id int64) error
+
+	//Builds a Trie of users for search
+	BuildTrie() (*indexes.Trie, error)
 }

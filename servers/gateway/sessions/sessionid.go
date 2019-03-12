@@ -1,13 +1,11 @@
 package sessions
 
 import (
-	"bytes"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"errors"
-	"io"
 )
 
 //InvalidSessionID represents an empty, invalid session ID
@@ -40,8 +38,10 @@ var ErrInvalidID = errors.New("Invalid Session ID")
 func NewSessionID(signingKey string) (SessionID, error) {
 	//TODO: if `signingKey` is zero-length, return InvalidSessionID
 	//and an error indicating that it may not be empty
+
 	if len(signingKey) == 0 {
-		return InvalidSessionID, errors.New("Given signing key is of length 0")
+
+		return InvalidSessionID, ErrInvalidID
 	}
 
 	//TODO: Generate a new digitally-signed SessionID by doing the following:
@@ -51,29 +51,23 @@ func NewSessionID(signingKey string) (SessionID, error) {
 	//  using the provided `signingKey` as the HMAC key.
 	//- encode that byte slice using base64 URL Encoding and return
 	//  the result as a SessionID type
+	bytes := make([]byte, idLength)
 
-	randBytes := make([]byte, idLength)
-	rand.Read(randBytes)
+	_, err := rand.Read(bytes)
 
-	hmacer := hmac.New(sha256.New, []byte(signingKey))
-	hashed := make([]byte, sha256.Size)
-	_, err := io.Copy(hmacer, bytes.NewReader(randBytes))
 	if err != nil {
+
 		return InvalidSessionID, err
 	}
-	hashed = hmacer.Sum(nil)
 
-	combined := append(randBytes, hashed...)
+	h := hmac.New(sha256.New, []byte(signingKey))
 
-	complete := base64.URLEncoding.EncodeToString(combined)
+	h.Write(bytes)
 
-	finalSessionID := SessionID(complete)
+	signature := h.Sum(nil)
+	bytes = append(bytes, signature...)
 
-	return finalSessionID, nil
-
-	//the following return statement is just a placeholder
-	//remove it when implementing the function
-	//return InvalidSessionID, nil
+	return SessionID(base64.URLEncoding.EncodeToString(bytes)), err
 }
 
 //ValidateID validates the string in the `id` parameter
@@ -82,29 +76,34 @@ func NewSessionID(signingKey string) (SessionID, error) {
 func ValidateID(id string, signingKey string) (SessionID, error) {
 
 	//TODO: validate the `id` parameter using the provided `signingKey`.
+
 	//base64 decode the `id` parameter, HMAC hash the
 	//ID portion of the byte slice, and compare that to the
 	//HMAC hash stored in the remaining bytes. If they match,
 	//return the entire `id` parameter as a SessionID type.
 	//If not, return InvalidSessionID and ErrInvalidID.
-	decoded, err := base64.URLEncoding.DecodeString(id)
+
+	bytes, err := base64.URLEncoding.DecodeString(id)
+
 	if err != nil {
-		return InvalidSessionID, err
+		return InvalidSessionID, ErrInvalidID
 	}
 
-	idPortion := decoded[:idLength]
-	sigPortion := decoded[idLength:]
-
-	tester := hmac.New(sha256.New, []byte(signingKey))
-
-	_, err = io.Copy(tester, bytes.NewReader(idPortion))
-	if err != nil {
-		return InvalidSessionID, err
+	if len(bytes) < signedLength {
+		return InvalidSessionID, ErrInvalidID
 	}
 
-	generatedSig := tester.Sum(nil)
+	compareTwo := bytes[idLength:]
 
-	if hmac.Equal(generatedSig, sigPortion) {
+	//compareOne := make([]byte, 0)
+
+	h := hmac.New(sha256.New, []byte(signingKey))
+	h.Write(bytes[0:idLength])
+	new := h.Sum(nil)
+
+	//compareOne = h.Sum(bytes[0 : idLength-1])
+
+	if hmac.Equal(new, compareTwo) {
 		return SessionID(id), nil
 	}
 

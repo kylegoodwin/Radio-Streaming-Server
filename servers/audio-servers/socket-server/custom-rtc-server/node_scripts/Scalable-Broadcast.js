@@ -35,8 +35,8 @@ module.exports = exports = function (config, socket, maxRelayLimitPerUser) {
     }
 
     socket.on('join-broadcast', function (user) {
-
-        console.log(users)
+        console.log("rawuser")
+        console.log(user)
         try {
             if (!users[user.userid]) {
                 socket.userid = user.userid;
@@ -88,40 +88,18 @@ module.exports = exports = function (config, socket, maxRelayLimitPerUser) {
                 // logs for target relaying user
                 relayUser.socket.emit('logs', 'You <' + relayUser.userid + '>' + ' are now relaying/forwarding data/stream to <' + user.userid + '>');
             } else {
+            // This is when the user begins a broadcast
+            console.log("user:")
+            console.log(user)
+
                 broadcasts.push(user.broadcastId);
                 users[user.userid].isBroadcastInitiator = true;
-     
-                var name = "New Stream";
-                if(user.clientChannelName){
-                    name = user.clientChannelName;
-                }
 
-                /*
-                let broadcast = new Stream ({
-                    channelID: user.broadcastId,
-                    displayName: user.broadcastId,
-                    discription: "",
-                    genre: "Any",
-                    createdAt: Date.now(),
-                    goLiveTime: Date.now(),
-                    creator: 0,
-                    followers: [],
-                    active: true
-                });
-                
+
+
         
-                
-                broadcast.save(function (err) {
-                    if (err) {
-                        console.log("there was an error");
-                        console.log(err)
-                        return
-                    }
-                    console.log("channel created in db");
-                });
-                */
-
-               Stream.findOneAndUpdate({ channelID: user.broadcastId},{active: true}, function(err){
+                /*codethatworked
+Stream.findOneAndUpdate({ channelID: user.broadcastId},{active: true}, function(err){
 
                 if(err){
                     console.log("error updating the current socket");
@@ -132,8 +110,26 @@ module.exports = exports = function (config, socket, maxRelayLimitPerUser) {
 
                 socket.emit('start-broadcasting', users[user.userid].typeOfStreams);
 
-                // logs to tell he is now broadcast initiator
-                socket.emit('logs', 'You <' + user.userid + '> are now serving the broadcast.');
+                */
+
+                Stream.findOneAndUpdate({ channelID: user.broadcastId }, { active: true }, function (err,response) {
+
+                    if (err) {
+                        console.log("error updating the current socket");
+                    }
+
+                    if(response){
+                        socket.emit('start-broadcasting', users[user.userid].typeOfStreams);
+                        // logs to tell he is now broadcast initiator
+                        socket.emit('logs', 'You <' + user.userid + '> are now serving the broadcast.');
+                    }else{
+                        socket.emit('broadcast-doesnt-exist','none found');
+                    }
+
+                    console.log("stream successfully posted as active");
+                });
+
+
             }
         } catch (e) {
             pushLogs(config, 'join-broadcast', e);
@@ -142,25 +138,6 @@ module.exports = exports = function (config, socket, maxRelayLimitPerUser) {
 
     socket.on('scalable-broadcast-message', function (message) {
         socket.broadcast.emit('scalable-broadcast-message', message);
-    });
-
-    socket.on('list-broadcasters', function () {
-        /*
-        if (users[socket.userid]) {
-            users[socket.userid].canRelay = true;
-        }
-        */
-        /*
-         var uTest = [];
-         for( user in users){
-             console.log("user " + user)
-             if( user.isBroadcastInitiator){
-                 uTest.push(user)
-             }
-         }
-         */
-        socket.emit('user-list-test', broadcasts)
-        console.log(broadcasts);
     });
 
     socket.on('can-relay-broadcast', function () {
@@ -261,15 +238,15 @@ module.exports = exports = function (config, socket, maxRelayLimitPerUser) {
                 */
 
 
-                Stream.findOneAndUpdate({ channelID: user.broadcastId},{active: false}, function(err){
+                Stream.findOneAndUpdate({ channelID: user.broadcastId }, { active: false }, function (err) {
 
-                    if(err){
+                    if (err) {
                         console.log("error, stream was not successfully deleted");
                     }
 
                     console.log("stream successfully went down");
                 });
-                
+
 
 
 
