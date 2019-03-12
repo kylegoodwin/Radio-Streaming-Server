@@ -65,7 +65,7 @@ app.patch("/v1/audio/channels/:streamID", function (req, res) {
 
 
 
-app.post("/v1/audio/channel", function (req, res) {
+app.post("/v1/audio/channels", function (req, res) {
 
   //Get the user sending the request
   var currentUser = {};
