@@ -1,5 +1,5 @@
 const amqp = require('amqplib/callback_api');
-const Channel = require('../models/channelModel.js');
+const Channel = require('../models/channelModel.js'); //need to figure out what to do about this
 
 
 exports.sendMessage = function(channelID, type, data, dataName, members) {
