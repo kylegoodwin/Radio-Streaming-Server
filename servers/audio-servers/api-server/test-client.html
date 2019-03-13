@@ -231,10 +231,14 @@ function loadBroadcast(){
 
             console.log('check-broadcast-presence', broadcastId, isBroadcastExists);
 
+            var urlParams = new URLSearchParams(window.location.search);
+            let authToken = urlParams.get('auth');
+
+
             socket.emit('join-broadcast', {
                 broadcastId: broadcastId,
                 userid: connection.userid,
-                gatewayUserID: 1,
+                gatewayAuth: authToken,
                 typeOfStreams: connection.session
             });
         });

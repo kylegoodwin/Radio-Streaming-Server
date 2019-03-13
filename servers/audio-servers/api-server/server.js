@@ -22,7 +22,7 @@ var Stream = require("./stream-schema");
 
 app.use(express.json());
 
-app.use(function (req, res, next) {
+app.all('/v1/channels', function (req, res, next) {
 
   let xUserValue = req.get("X-User")
   if (xUserValue == undefined) {
@@ -66,19 +66,15 @@ app.patch("/v1/audio/channels/:streamID", function (req, res) {
 
 
 app.post("/v1/audio/channels", function (req, res) {
-  console.log(req.header("X-User"))
+ 
   //Get the user sending the request
   var currentUser = {};
   if (req.header("X-User")) {
     currentUser = JSON.parse(req.header("X-User"));
-    console.log('xguy');
-    console.log(currentUser);
   }
 
   //currentUser = parseInt(req.header("X-User"),10);
-  console.log("channnelidtest");
-  console.log(req.body);
-  console.log(req.body.channelID);
+
   if (req.body.channelID) {
 
     let givenChannelID = req.body.channelID;
