@@ -21,14 +21,12 @@ import (
 
 	"github.com/go-redis/redis"
 
-	"github.com/kylegoodwin/assignments-kylegoodwin/servers/gateway/handlers"
+	"github.com/Radio-Streaming-Server/servers/gateway/handlers"
 )
 
 //main is the main entry point for the server
 
 func main() {
-
-	fmt.Println("just testing print")
 
 	//Microservice Addresses
 
@@ -149,6 +147,7 @@ func main() {
 	}
 	aURL, _ := url.Parse("http://audio-api:80")
 	parsedAudioURLS := []*url.URL{aURL}
+
 	messageProxy := &httputil.ReverseProxy{Director: handlers.CustomDirector(parsedMessageURLS, context)}
 	summaryProxy := &httputil.ReverseProxy{Director: handlers.CustomDirector(parsedSummaryURLS, context)}
 	audioProxy := &httputil.ReverseProxy{Director: handlers.CustomDirector(parsedAudioURLS, context)}

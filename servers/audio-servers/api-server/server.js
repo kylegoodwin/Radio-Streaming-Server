@@ -66,11 +66,13 @@ app.patch("/v1/audio/channels/:streamID", function (req, res) {
 
 
 app.post("/v1/audio/channels", function (req, res) {
-
+  console.log(req.header("X-User"))
   //Get the user sending the request
   var currentUser = {};
   if (req.header("X-User")) {
     currentUser = JSON.parse(req.header("X-User"));
+    console.log('xguy');
+    console.log(currentUser);
   }
 
   //currentUser = parseInt(req.header("X-User"),10);

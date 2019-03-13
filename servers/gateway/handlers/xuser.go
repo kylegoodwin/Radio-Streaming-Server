@@ -35,6 +35,8 @@ func CustomDirector(targets []*url.URL, context HandlerContext) Director {
 		//User properly authenticated, add x-user header
 		if err == nil {
 			user := sessionState.User
+			log.Println("x-user-user")
+			log.Println(user)
 			marshaled, err := json.Marshal(user)
 
 			if err != nil {

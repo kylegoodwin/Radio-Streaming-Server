@@ -9,7 +9,7 @@ exports.sendMessage = function(channelID, type, data, dataName, members) {
         conn.createChannel(function(err, ch) {});
     });
 
-    Channel.findOne({id:channelID}, function(err, res){
+    Channel.findOne({channelID:channelID}, function(err, res){
         var messageObj = {
             type: type,
         }
@@ -17,7 +17,9 @@ exports.sendMessage = function(channelID, type, data, dataName, members) {
         // if(!res.listeners){
         //     messageObj.userIDs = members
         // } else {
-            messageObj.userIDs = res.listeners
+        if(res){
+            messageObj.userIDs = res.activeListeners;
+        }
         //}
 
    
