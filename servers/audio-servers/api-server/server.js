@@ -113,11 +113,12 @@ app.post("/v1/audio/channels", function (req, res) {
           createdAt: Date.now(),
           creator: creator,
           followers: [],
-          active: false
+          active: false,
+          activeListeners: [0]
         });
 
       broadcast.save();
-
+      console.log(broadcast);
       res.json(broadcast);
 
       }
