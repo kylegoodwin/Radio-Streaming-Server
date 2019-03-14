@@ -1,4 +1,5 @@
-var app = require('express')();
+var express = require('express');
+var app = express();
 var fs = require('fs')
 var mdport = process.env.MDPORT;
 var http = require('http').createServer(app);
@@ -19,28 +20,151 @@ var db = mongoose.connection;
 
 var Stream = require("./stream-schema");
 
-app.get('/v1/audio', function(req, res){
+app.use(express.json());
+
+app.all('/v1/channels', function (req, res, next) {
+
+  let xUserValue = req.get("X-User")
+  if (xUserValue == undefined) {
+      const err = new Error('User Not Authenticated');
+      err.status = 401;
+      next(err);
+  } else {
+      next()
+  }
+
+})
+
+app.get('/v1/audio/client', function (req, res) {
   res.sendFile(__dirname + '/index.html');
 });
 
-
-app.get('/v1/audio/rtcjs',function(req,res){
-    res.sendFile(__dirname + "/dist/RTCMultiConnection.min.js")
+app.get('/v1/audio/directclient/*', function (req, res) {
+  res.sendFile(__dirname + '/test-client.html');
 });
 
-app.get('/v1/audio/adapter',function(req,res){
-    res.sendFile(__dirname + "/node_modules/webrtc-adapter/out/adapter.js")
+app.patch("/v1/audio/channels/:streamID", function (req, res) {
+
+  let id = req.params.streamID;
+  let newName = req.body.name;
+
+  Stream.findOneAndUpdate({ channelID: id }, { displayName: newName }, { new: true }, function (err, doc, response) {
+
+    if (err) {
+      console.log(err);
+    } else {
+      res.json(response);
+    }
+
+
+  });
+
+
+
 });
 
-app.get('/v1/audio/socket',function(req,res){
-    res.sendFile(__dirname + "/node_modules/socket.io-client/dist/socket.io.js")
+
+
+app.post("/v1/audio/channels", function (req, res) {
+ 
+  //Get the user sending the request
+  var currentUser = {};
+  if (req.header("X-User")) {
+    currentUser = JSON.parse(req.header("X-User"));
+  }
+
+  //currentUser = parseInt(req.header("X-User"),10);
+
+  if (req.body.channelID) {
+
+    let givenChannelID = req.body.channelID;
+    let givenDisplayName = req.body.channelID;
+    let givenDescription = "";
+    let givenGenre = "Any";
+    let creator = currentUser;
+
+
+    if (req.body.displayName) {
+      givenDisplayName = req.body.displayName;
+    }
+    if (req.body.description) {
+      givenDescription = req.body.discription;
+    }
+    if (req.body.genre) {
+      givenGenre = req.body.genre;
+    }
+
+
+
+
+
+    Stream.findOne({ channelID: req.body.channelID }, function (err, response) {
+
+      //The channel doesnt exist, we can make a new one
+      if (!response) {
+
+        let broadcast = new Stream({
+          channelID: givenChannelID,
+          displayName: givenDisplayName,
+          discription: givenDescription,
+          genre: givenGenre,
+          createdAt: Date.now(),
+          creator: creator,
+          followers: [],
+          active: false,
+          activeListeners: [0]
+        });
+
+      broadcast.save();
+      console.log(broadcast);
+      res.json(broadcast);
+
+      }
+
+    });
+
+  } else {
+    //The request body wasnt right
+    res.status(400).send("Channel requires a channelID");
+  }
+
+
+
 });
 
-app.get('/v1/audio/streams', function(req,res){
+app.get('/v1/audio/rtcjs', function (req, res) {
+  res.sendFile(__dirname + "/dist/RTCMultiConnection.min.js")
+});
 
-  Stream.find({}, function(err, response){
+app.get('/v1/audio/adapter', function (req, res) {
+  res.sendFile(__dirname + "/node_modules/webrtc-adapter/out/adapter.js")
+});
 
-    if(err){
+app.get('/v1/audio/socket', function (req, res) {
+  res.sendFile(__dirname + "/node_modules/socket.io-client/dist/socket.io.js")
+});
+
+app.get('/v1/audio/channels/all', function (req, res) {
+
+  Stream.find({}, function (err, response) {
+
+    if (err) {
+      console.log(err)
+    }
+
+    res.json(response);
+
+  });
+
+
+
+});
+
+app.get('/v1/audio/channels/live', function (req, res) {
+
+  Stream.find({ active: true }, function (err, response) {
+
+    if (err) {
       console.log(err)
     }
 
@@ -53,6 +177,6 @@ app.get('/v1/audio/streams', function(req,res){
 });
 
 
-http.listen(port, function(){
+http.listen(port, function () {
   console.log('listening on *:' + port);
 });

@@ -10,9 +10,8 @@ import (
 //see the assignment description for the fields you should include
 //remember that other packages can only see exported fields!
 
-//SessionState (I think) describes how long a given user has been
-//validated in the service
-type SessionState struct {
-	SessionBegin time.Time  `json:"sessionBegin"`
-	User         users.User `json:"user"`
+//UserSession Defines the authentication session of a user
+type UserSession struct {
+	Usertime time.Time  `json:"time,omitempty"`
+	User     users.User `json:"user,omitempty"`
 }

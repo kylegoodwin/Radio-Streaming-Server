@@ -1,5 +1,5 @@
 const amqp = require('amqplib/callback_api');
-const Channel = require('../models/channelModel.js');
+const Channel = require('../models/streamModel.js');
 
 
 exports.sendMessage = function(channelID, type, data, dataName, members) {
@@ -9,16 +9,18 @@ exports.sendMessage = function(channelID, type, data, dataName, members) {
         conn.createChannel(function(err, ch) {});
     });
 
-    Channel.findOne({id:channelID}, function(err, res){
+    Channel.findOne({channelID:channelID}, function(err, res){
         var messageObj = {
             type: type,
         }
 
-        if(!res.members){
-            messageObj.userIDs = members
-        } else {
-            messageObj.userIDs = res.members
+        // if(!res.listeners){
+        //     messageObj.userIDs = members
+        // } else {
+        if(res){
+            messageObj.userIDs = res.activeListeners;
         }
+        //}
 
    
         messageObj[dataName] = data
@@ -27,7 +29,7 @@ exports.sendMessage = function(channelID, type, data, dataName, members) {
    
          amqp.connect('amqp://rabbit', function(err, conn) {
            conn.createChannel(function(err, ch) {
-               var q = 'Messages';
+               var q = 'messages';
    
                ch.assertQueue(q, {durable: true});
                // Note: on Node 6 Buffer.from(msg) should be used

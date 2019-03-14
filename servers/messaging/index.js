@@ -1,7 +1,7 @@
 const express = require("express");
 const bodyParser = require('body-parser');
 const app = express();
-const channel_controller = require('./controllers/channel_controller.js');
+
 
 
 const port = process.env.PORT;
@@ -34,8 +34,6 @@ app.use(express.json());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
 app.use('/v1/', routes);
-
-channel_controller.handleGeneral()
 
 //TODO: add error handling function
 

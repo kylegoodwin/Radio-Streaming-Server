@@ -56,6 +56,7 @@
     "mongoose": "^5.4.18",
     "multistreamsmixer": "latest",
     "recordrtc": "latest",
+    "request": "^2.88.0",
     "rtcmulticonnection-server": "latest",
     "socket.io": "latest",
     "socket.io-client": "^2.2.0",

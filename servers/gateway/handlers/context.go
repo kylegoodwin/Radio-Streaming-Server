@@ -1,24 +1,25 @@
 package handlers
 
 import (
+	"github.com/Radio-Streaming-Server/servers/gateway/indexes"
+	"github.com/Radio-Streaming-Server/servers/gateway/models/logins"
 	"github.com/Radio-Streaming-Server/servers/gateway/models/users"
 	"github.com/Radio-Streaming-Server/servers/gateway/sessions"
 )
 
-//Context gives the RedisStore and MySQLStore so that they
-//can be accessed globally
-type Context struct {
-	Key           string
-	SessionsStore *sessions.RedisStore /**sessions.MemStore*/
-	UsersStore    *users.MySQLStore    /* *users.MyMockStore*/
-}
+//TODO: define a handler context struct that
+//will be a receiver on any of your HTTP
+//handler functions that need access to
+//globals, such as the key used for signing
+//and verifying SessionIDs, the session store
+//and the user store
 
-//NewContext creates a new context if given a key, sessionstore and userstore
-func NewContext(key string, ss *sessions.RedisStore /* *sessions.MemStore*/, us *users.MySQLStore /* *users.MyMockStore*/) *Context {
-	if ss == nil || us == nil || key == "" {
-		return nil
-	}
-
-	context := Context{key, ss, us}
-	return &context
+//Handler context stores the session and user stores so that http writers can access them
+type HandlerContext struct {
+	Key     string
+	Session sessions.Store
+	User    users.Store
+	Login   logins.Store
+	Trie    *indexes.Trie
+	Sockets *userSockets
 }

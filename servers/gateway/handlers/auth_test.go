@@ -1,880 +1,564 @@
 package handlers
 
 import (
-	"bytes"
 	"encoding/json"
-	"io/ioutil"
-	"log"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
+	"strings"
 	"testing"
 	"time"
 
-	"github.com/Radio-Streaming-Server/servers/gateway/models/users"
+	"github.com/Radio-Streaming-Server/servers/gateway/models/logins"
+
 	"github.com/Radio-Streaming-Server/servers/gateway/sessions"
-	"github.com/go-redis/redis"
+
+	"github.com/Radio-Streaming-Server/servers/gateway/models/users"
 )
 
-func TestContext(t *testing.T) {
-	//Fail Case
-	var a *redis.Client
-	b := sessions.NewRedisStore(a, time.Second) // sessions.NewMemStore(time.Hour, time.Hour)
-	c := &users.MySQLStore{}                    //&users.MyMockStore{}
-	context := NewContext("", b, c)
-	if context != nil {
-		t.Error("Expected Context constructor to fail but it did not return nil")
-	}
+/*
+ Remember to test not only correct inputs, but also incorrect inputs.
+ Check not only the response body, but also the response status code and headers.
+ Ensure that your handlers do the right thing in all cases.
+*/
 
-	//Success Case
-	a = redis.NewClient(&redis.Options{
-		Addr: "172.17.0.2:6379",
-	})
-	b = sessions.NewRedisStore(a, time.Second)
-	//b = sessions.NewMemStore(time.Hour, time.Hour)
-	context = NewContext("test", b, c)
-	if context == nil {
-		t.Error("Expected Context constructor to work but it did not ")
-	}
-}
+var defaultSessionDuration = time.Duration(time.Hour)
 
-func TestContext_POSTUserHandler(t *testing.T) {
-	//make sure to run this badboy:
-	//sudo docker run -d --name redisServer redis
-	//and set your env variable
-	redisaddr := os.Getenv("REDISADDR")
-	if len(redisaddr) == 0 {
-		redisaddr = "172.17.0.2:6379"
-	}
+func TestUsersHandler(t *testing.T) {
 
-	client := redis.NewClient(&redis.Options{
-		Addr: redisaddr,
-	})
+	fakeConn := users.NewFakeConnection()
+	fakeSession := sessions.NewMemStore(defaultSessionDuration, defaultSessionDuration)
 
-	context := &Context{
-		Key:           "testkey",
-		SessionsStore: sessions.NewRedisStore(client, time.Hour), //sessions.NewMemStore(time.Hour, time.Hour),
-		UsersStore:    &users.MySQLStore{},                       //&users.MyMockStore{},
-	}
-
-	//CREATE NEW USERS FOR TEST CASES
-	/*
-		Email        string `json:"email"`
-		Password     string `json:"password"`
-		PasswordConf string `json:"passwordConf"`
-		UserName     string `json:"userName"`
-		FirstName    string `json:"firstName"`
-		LastName     string `json:"lastName"`
-	*/
 	validNewUser := users.NewUser{
-		Email:        "test@test.com",
-		Password:     "hunter2",
-		PasswordConf: "hunter2",
-		UserName:     "AzureDiamond",
-		FirstName:    "John",
-		LastName:     "Johnson",
+		Email:        "coolguy@ding.dong",
+		Password:     "password",
+		PasswordConf: "password",
+		UserName:     "coolguy420",
+		FirstName:    "Cool",
+		LastName:     "Guy",
 	}
 
 	invalidNewUser := users.NewUser{
-		Email:        "test@test.com",
-		Password:     "hunter2",
-		PasswordConf: "Wrong",
-		UserName:     "AzureDiamond",
-		FirstName:    "Error",
-		LastName:     "Johnson",
-	}
-	FailInsertNewUser1 := users.NewUser{
-		Email:        "test@test.com",
-		Password:     "hunter2",
-		PasswordConf: "hunter2",
-		UserName:     "AzureDiamond",
-		FirstName:    "Error",
-		LastName:     "Johnson",
-	}
-	FailInsertNewUser2 := users.NewUser{
-		Email:        "test@test.com",
-		Password:     "hunter2",
-		PasswordConf: "hunter2",
-		UserName:     "AzureDiamond",
-		FirstName:    "Error",
-		LastName:     "Error",
+		Email:    "",
+		Password: "fart",
+		LastName: "Guy",
 	}
 
-	//CREATE USERS FOR TEST CASE RESULTS
-	validUser, err := validNewUser.ToUser()
-	if err != nil {
-		log.Printf("error initializing test users")
-	}
-	validUser.ID = int64(1)
+	validUser, _ := validNewUser.ToUser()
 
-	/*invalidUser, err := invalidNewUser.ToUser()
-	if err != nil {
-		log.Printf("error initializing test users")
-	}*/
+	var handleTest = HandlerContext{
+		Key:     "fakesigningkey",
+		User:    fakeConn,
+		Session: fakeSession,
+	}
 
 	cases := []struct {
 		name                string
 		method              string
-		idPath              string
-		newUser             *users.NewUser
+		requestBody         users.NewUser
 		expectedStatusCode  int
 		expectedError       bool
 		expectedContentType string
 		expectedReturn      *users.User
 	}{
+
 		{
 			"Valid Post Request",
 			http.MethodPost,
-			"1",
-			&validNewUser,
+			validNewUser,
 			http.StatusCreated,
 			false,
-			"application/json",
+			HeaderJSON,
 			validUser,
 		},
+
 		{
-			"Invalid Post Request - Content Type",
+			"Invalid User Sent",
 			http.MethodPost,
-			"2",
-			&validNewUser,
+			invalidNewUser,
+			http.StatusBadRequest,
+			true,
+			HeaderJSON,
+			validUser,
+		},
+
+		{
+			"Invalid request body type (non json)",
+			http.MethodPost,
+			invalidNewUser,
 			http.StatusUnsupportedMediaType,
 			true,
 			"text/plain; charset=utf-8",
-			validUser,
+			nil,
 		},
+
 		{
-			"Invalid Post Request - Method",
+			"Invalid http method",
 			http.MethodGet,
-			"2",
-			&validNewUser,
+			validNewUser,
 			http.StatusMethodNotAllowed,
 			true,
 			"text/plain; charset=utf-8",
-			validUser,
-		},
-		{
-			"Invalid Post Request - Invalid NewUser",
-			http.MethodPost,
-			"2",
-			&invalidNewUser,
-			http.StatusInternalServerError,
-			true,
-			"text/plain; charset=utf-8",
-			validUser,
-		},
-		{
-			"Invalid Given User - Insert Fail",
-			http.MethodPost,
-			"2",
-			&FailInsertNewUser1,
-			http.StatusInternalServerError,
-			true,
-			"text/plain; charset=utf-8",
-			validUser,
-		},
-		{
-			"Invalid Given User - Insert Fail (ID)",
-			http.MethodPost,
-			"2",
-			&FailInsertNewUser2,
-			http.StatusInternalServerError,
-			true,
-			"text/plain; charset=utf-8",
-			validUser,
+			nil,
 		},
 	}
 
 	for _, c := range cases {
-		log.Printf("running case name: %s", c.name)
-		buffer := new(bytes.Buffer)
-		encoder := json.NewEncoder(buffer)
-		encoder.Encode(c.newUser)
-		request := httptest.NewRequest(c.method, "/v1/users/"+c.idPath, buffer)
-
-		if c.expectedStatusCode != http.StatusUnsupportedMediaType {
-			request.Header.Add("Content-Type", "application/json")
-		}
-
+		body, _ := json.Marshal(c.requestBody)
+		request := httptest.NewRequest(c.method, "/v1/users", strings.NewReader(string(body)))
+		request.Header.Set(HeaderContentType, c.expectedContentType)
 		recorder := httptest.NewRecorder()
-		context.UsersHandler(recorder, request)
+
+		handleTest.UsersHandler(recorder, request)
 		response := recorder.Result()
 
-		resContentType := response.Header.Get("Content-Type")
+		//Test Content type
+		resContentType := response.Header.Get(HeaderContentType)
 		if !c.expectedError && c.expectedContentType != resContentType {
-			t.Errorf("case %s: incorrect return type: expected: %s received: %s",
-				c.name, c.expectedContentType, resContentType)
+			t.Errorf("case %s: incorrect return type: expected %s but recieved %s", c.name, c.expectedContentType, resContentType)
+
 		}
 
 		resStatusCode := response.StatusCode
 		if c.expectedStatusCode != resStatusCode {
-			t.Errorf("case %s: incorrect status code: expected: %d received: %d",
+			t.Errorf("case %s: incorrect status code: expected: %d recieved: %d",
 				c.name, c.expectedStatusCode, resStatusCode)
 		}
 
 		user := &users.User{}
 		err := json.NewDecoder(response.Body).Decode(user)
 		if c.expectedError && err == nil {
-			t.Errorf("case %s: expected error but received none", c.name)
+			t.Errorf("case %s: expected error but revieved none", c.name)
 		}
 
 		if !c.expectedError && c.expectedReturn.Email != user.Email && string(c.expectedReturn.PassHash) != string(user.PassHash) &&
 			c.expectedReturn.FirstName != user.FirstName && c.expectedReturn.LastName != user.LastName {
-			t.Errorf("case %s: incorrect return: expected %v but received %v",
+			t.Errorf("case %s: incorrect return: expected %v but revieved %v",
 				c.name, c.expectedReturn, user)
 		}
+
 	}
 
 }
 
-func TestContext_GETSpecificUserHandler(t *testing.T) {
-	redisaddr := os.Getenv("REDISADDR")
-	if len(redisaddr) == 0 {
-		redisaddr = "172.17.0.2:6379"
-	}
+//Need to fix this, problems authenticating the user
+func TestSpecificUserHandler(t *testing.T) {
+	fakeConn := users.NewFakeConnection()
+	fakeSession := sessions.NewMemStore(defaultSessionDuration, defaultSessionDuration)
 
-	client := redis.NewClient(&redis.Options{
-		Addr: redisaddr,
-	})
-
-	context := &Context{
-		Key:           "testkey",
-		SessionsStore: sessions.NewRedisStore(client, time.Hour), //sessions.NewMemStore(time.Hour, time.Hour),
-		UsersStore:    &users.MySQLStore{},                       //&users.MyMockStore{},
+	var handleTest = HandlerContext{
+		Key:     "fakesigningkey",
+		User:    fakeConn,
+		Session: fakeSession,
 	}
 
 	validNewUser := users.NewUser{
-		Email:        "test@test.com",
-		Password:     "hunter2",
-		PasswordConf: "hunter2",
-		UserName:     "AzureDiamond",
-		FirstName:    "John",
-		LastName:     "Johnson",
+		Email:        "coolguy@gmail.com",
+		Password:     "password",
+		PasswordConf: "password",
+		UserName:     "coolguy",
+		FirstName:    "Cool",
+		LastName:     "Guy",
 	}
-	/*invalidNewUser := users.NewUser{
-		Email:        "wrong@test.com",
-		Password:     "hunter2",
-		PasswordConf: "hunter2",
-		UserName:     "AzureDiamond",
-		FirstName:    "John",
-		LastName:     "Johnson",
-	}*/
 
-	//CREATE USERS FOR TEST CASE RESULTS
-	validUser, err := validNewUser.ToUser()
-	if err != nil {
-		log.Printf("error initializing test users")
+	validUser, _ := validNewUser.ToUser()
+
+	validUpdates := users.Updates{
+		FirstName: "New",
+		LastName:  "Name",
 	}
-	validUser.ID = int64(1)
+
+	invalidUpdates := users.Updates{
+		FirstName: "",
+		LastName:  "",
+	}
+
+	updatedUser := users.User{
+		ID:        1,
+		Email:     "coolguy@gmail.com",
+		FirstName: "New",
+		LastName:  "Name",
+	}
+	updatedUser.SetPassword("password")
 
 	cases := []struct {
 		name                string
 		method              string
-		idPath              string
-		newUser             *users.NewUser
-		useValidCredentials bool
+		requestUserID       string
+		requestBody         users.Updates
 		expectedStatusCode  int
 		expectedError       bool
 		expectedContentType string
 		expectedReturn      *users.User
 	}{
+
 		{
-			"Valid Get Request",
+			"User is authenticated, Get ",
 			http.MethodGet,
 			"1",
-			&validNewUser,
-			true,
+			validUpdates,
 			http.StatusOK,
 			false,
-			"application/json",
+			HeaderJSON,
 			validUser,
 		},
 		{
-			"Valid Get Request",
+			"User is authenticated, Get me ",
 			http.MethodGet,
 			"me",
-			&validNewUser,
-			true,
+			validUpdates,
 			http.StatusOK,
 			false,
-			"application/json",
+			HeaderJSON,
 			validUser,
 		},
 		{
-			"Invalid Get Request - No Credentials (no session)",
-			http.MethodGet,
+			"Bad method",
+			http.MethodDelete,
 			"1",
-			&validNewUser,
-			false,
-			http.StatusUnauthorized,
-			true,
-			"text/plain; charset=utf-8",
-			validUser,
-		},
-		{
-			"Invalid Get Request - Wrong Method",
-			http.MethodPost,
-			"1",
-			&validNewUser,
-			true,
+			validUpdates,
 			http.StatusMethodNotAllowed,
 			true,
-			"text/plain; charset=utf-8",
+			HeaderJSON,
 			validUser,
 		},
 		{
-			"Invalid Get Request - Requested User Not Found",
-			http.MethodGet,
-			"2",
-			&validNewUser,
-			true,
-			http.StatusNotFound,
-			true,
-			"text/plain; charset=utf-8",
-			validUser,
-		},
-		{
-			"Invalid Get Request - No Provided ID",
-			http.MethodGet,
-			"",
-			&validNewUser,
-			true,
-			http.StatusNotFound,
-			true,
-			"text/plain; charset=utf-8",
-			validUser,
-		},
-	}
-
-	for _, c := range cases {
-
-		log.Printf("\n\nrunning case name: %s", c.name)
-		buffer := new(bytes.Buffer)
-		encoder := json.NewEncoder(buffer)
-		encoder.Encode(c.newUser)
-		request := httptest.NewRequest(c.method, "/v1/users/"+c.idPath, buffer)
-
-		if c.expectedStatusCode != http.StatusUnsupportedMediaType {
-			request.Header.Add("Content-Type", "application/json")
-		}
-
-		recorder := httptest.NewRecorder()
-		//Trying to create a session for the valid user
-		if c.name != "Invalid Get Request - No Credentials (no session)" {
-			newSessState := SessionState{time.Now(), *c.expectedReturn}
-			sid, err := sessions.BeginSession(context.Key, context.SessionsStore, &newSessState, recorder)
-			if err != nil {
-				log.Fatal(err.Error())
-			}
-			request.Header.Add("Authorization", "Bearer "+sid.String())
-
-		}
-
-		context.SpecificUserHandler(recorder, request)
-		response := recorder.Result()
-
-		resContentType := response.Header.Get("Content-Type")
-		if !c.expectedError && c.expectedContentType != resContentType {
-			t.Errorf("case %s: incorrect return type: expected: %s received: %s",
-				c.name, c.expectedContentType, resContentType)
-		}
-
-		resStatusCode := response.StatusCode
-		if c.expectedStatusCode != resStatusCode {
-			t.Errorf("case %s: incorrect status code: expected: %d received: %d",
-				c.name, c.expectedStatusCode, resStatusCode)
-		}
-
-		user := &users.User{}
-		err := json.NewDecoder(response.Body).Decode(user)
-		if c.expectedError && err == nil {
-			t.Errorf("case %s: expected error but received none", c.name)
-		}
-
-		if !c.expectedError && c.expectedReturn.Email != user.Email && string(c.expectedReturn.PassHash) != string(user.PassHash) &&
-			c.expectedReturn.FirstName != user.FirstName && c.expectedReturn.LastName != user.LastName {
-			t.Errorf("case %s: incorrect return: expected %v but received %v",
-				c.name, c.expectedReturn, user)
-		}
-	}
-}
-func TestContext_PATCHSpecificUserHandler(t *testing.T) {
-	redisaddr := os.Getenv("REDISADDR")
-	if len(redisaddr) == 0 {
-		redisaddr = "172.17.0.2:6379"
-	}
-
-	client := redis.NewClient(&redis.Options{
-		Addr: redisaddr,
-	})
-
-	context := &Context{
-		Key:           "testkey",
-		SessionsStore: sessions.NewRedisStore(client, time.Hour), //sessions.NewMemStore(time.Hour, time.Hour),
-		UsersStore:    &users.MySQLStore{},                       //&users.MyMockStore{},
-	}
-
-	validNewUser := users.NewUser{
-		Email:        "test@test.com",
-		Password:     "hunter2",
-		PasswordConf: "hunter2",
-		UserName:     "AzureDiamond",
-		FirstName:    "John",
-		LastName:     "Johnson",
-	}
-
-	//CREATE USERS FOR TEST CASE RESULTS
-	validUser, err := validNewUser.ToUser()
-	if err != nil {
-		log.Printf("error initializing test users")
-	}
-	validUser.ID = int64(1)
-
-	//CREATE UPDATES FOR TEST CASES
-	validUpdates := users.Updates{
-		FirstName: "Test",
-		LastName:  "Johnson",
-	}
-	invalidUpdates := users.Updates{
-		FirstName: "Error",
-		LastName:  "Johnson",
-	}
-
-	cases := []struct {
-		name                string
-		method              string
-		idPath              string
-		updates             *users.Updates
-		useValidCredentials bool
-		expectedStatusCode  int
-		expectedError       bool
-		expectedContentType string
-		expectedReturn      *users.User
-	}{
-		{
-			"Valid Patch Request",
+			"User is authenticated, Patch",
 			http.MethodPatch,
-			"1",
-			&validUpdates,
-			true,
+			"0",
+			validUpdates,
 			http.StatusOK,
 			false,
-			"application/json",
-			validUser,
+			HeaderJSON,
+			&updatedUser,
 		},
 		{
-			"Invalid Patch Request - Invalid upadates",
+			"Trying to update other user, Patch",
 			http.MethodPatch,
 			"1",
-			&invalidUpdates,
-			true,
-			http.StatusInternalServerError,
-			true,
-			"text/plain; charset=utf-8",
-			validUser,
-		},
-		{
-			"Invalid Patch Request - Trying to update another user",
-			http.MethodPatch,
-			"2",
-			&invalidUpdates,
-			true,
+			validUpdates,
 			http.StatusForbidden,
 			true,
-			"text/plain; charset=utf-8",
-			validUser,
+			HeaderJSON,
+			&updatedUser,
 		},
 		{
-			"Invalid Patch Request - No ID given",
+			"Bad update, Patch",
 			http.MethodPatch,
-			"",
-			&invalidUpdates,
+			"0",
+			invalidUpdates,
+			http.StatusInternalServerError,
 			true,
-			http.StatusNotFound,
-			true,
-			"text/plain; charset=utf-8",
-			validUser,
-		},
-		{
-			"Invalid Patch Request - Invalid header",
-			http.MethodPatch,
-			"1",
-			&invalidUpdates,
-			true,
-			http.StatusUnsupportedMediaType,
-			true,
-			"text/plain; charset=utf-8",
-			validUser,
+			HeaderJSON,
+			&updatedUser,
 		},
 	}
 
 	for _, c := range cases {
 
-		log.Printf("\n\nrunning case name: %s", c.name)
-		buffer := new(bytes.Buffer)
-		encoder := json.NewEncoder(buffer)
-		encoder.Encode(c.updates)
-		request := httptest.NewRequest(c.method, "/v1/users/"+c.idPath, buffer)
+		reqBody, _ := json.Marshal(c.requestBody)
+		var request *http.Request
 
-		if c.expectedStatusCode != http.StatusUnsupportedMediaType {
-			request.Header.Add("Content-Type", "application/json")
+		if c.method == http.MethodPatch {
+			request = httptest.NewRequest(c.method, "/v1/users/"+string(c.requestUserID), strings.NewReader(string(reqBody)))
+			request.Header.Set(HeaderContentType, HeaderJSON)
+
+		} else {
+			request = httptest.NewRequest(c.method, "/v1/users/"+string(c.requestUserID), nil)
 		}
-
 		recorder := httptest.NewRecorder()
-		//Trying to create a session for the valid user
-		if c.name != "Invalid Get Request - No Credentials (no session)" {
-			newSessState := SessionState{time.Now(), *c.expectedReturn}
-			sid, err := sessions.BeginSession(context.Key, context.SessionsStore, &newSessState, recorder)
-			if err != nil {
-				log.Fatal(err.Error())
-			}
-			request.Header.Add("Authorization", "Bearer "+sid.String())
 
-		}
+		var sessionState UserSession
+		sessionState.User = *validUser
+		sessionState.Usertime = time.Now()
 
-		context.SpecificUserHandler(recorder, request)
+		sid, _ := sessions.BeginSession(handleTest.Key, handleTest.Session, &sessionState, recorder)
+
+		request.Header.Set(HeaderAuth, "Bearer "+string(sid))
+		handleTest.SpecificUserHandler(recorder, request)
+
 		response := recorder.Result()
+		/*
+			fmt.Println(c.name)
+			fmt.Println("--------------------")
+			buf := new(bytes.Buffer)
+			buf.ReadFrom(response.Body)
+			newStr := buf.String()
 
-		resContentType := response.Header.Get("Content-Type")
+			fmt.Printf(newStr)
+			fmt.Println("--------------------")
+		*/
+
+		//Test Content type
+		fmt.Println("&&&& " + c.name)
+		fmt.Println(response.Header)
+		resContentType := response.Header.Get(HeaderContentType)
+		resStatusCode := response.StatusCode
+
 		if !c.expectedError && c.expectedContentType != resContentType {
-			t.Errorf("case %s: incorrect return type: expected: %s received: %s",
-				c.name, c.expectedContentType, resContentType)
+			t.Errorf("case %s: incorrect return type: expected %s but recieved %s", c.name, c.expectedContentType, resContentType)
+
 		}
 
-		resStatusCode := response.StatusCode
 		if c.expectedStatusCode != resStatusCode {
-			t.Errorf("case %s: incorrect status code: expected: %d received: %d",
+			t.Errorf("case %s: incorrect status code: expected: %d recieved: %d",
 				c.name, c.expectedStatusCode, resStatusCode)
 		}
 
 		user := &users.User{}
 		err := json.NewDecoder(response.Body).Decode(user)
+
 		if c.expectedError && err == nil {
-			t.Errorf("case %s: expected error but received none", c.name)
+			t.Errorf("case %s: expected error but revieved none", c.name)
 		}
 
 		if !c.expectedError && c.expectedReturn.Email != user.Email && string(c.expectedReturn.PassHash) != string(user.PassHash) &&
 			c.expectedReturn.FirstName != user.FirstName && c.expectedReturn.LastName != user.LastName {
-			t.Errorf("case %s: incorrect return: expected %v but received %v",
+			t.Errorf("case %s: incorrect return: expected %v but revieved %v",
 				c.name, c.expectedReturn, user)
 		}
+
 	}
+
 }
 
-func TestContext_SessionsHandler(t *testing.T) {
-	redisaddr := os.Getenv("REDISADDR")
-	if len(redisaddr) == 0 {
-		redisaddr = "172.17.0.2:6379"
+func TestSessionsHandler(t *testing.T) {
+
+	fakeConn := users.NewFakeConnection()
+	fakeSession := sessions.NewMemStore(defaultSessionDuration, defaultSessionDuration)
+	loginStore := logins.NewFakeConnection()
+
+	var handleTest = HandlerContext{
+		Key:     "fakesigningkey",
+		User:    fakeConn,
+		Session: fakeSession,
+		Login:   loginStore,
 	}
 
-	client := redis.NewClient(&redis.Options{
-		Addr: redisaddr,
-	})
-
-	context := &Context{
-		Key:           "testkey",
-		SessionsStore: sessions.NewRedisStore(client, time.Hour), // sessions.NewMemStore(time.Hour, time.Hour),
-		UsersStore:    &users.MySQLStore{},                       //&users.MyMockStore{},
-	}
-
-	//CREATE CREDENTIALS FOR TEST CASES
-	validCredentials := users.Credentials{
-		Email:    "test@test.com",
-		Password: "hunter2",
-	}
-
-	invalidCredentialsPass := users.Credentials{
-		Email:    "test@test.com",
-		Password: "wrong",
-	}
-	invalidCredentialsEmail := users.Credentials{
-		Email:    "wrong@test.com",
-		Password: "hunter2",
-	}
-	var malformedCredentials *users.Credentials
-
-	//CREATE NEW USERS FOR TEST CASES
-	/*
-		Email        string `json:"email"`
-		Password     string `json:"password"`
-		PasswordConf string `json:"passwordConf"`
-		UserName     string `json:"userName"`
-		FirstName    string `json:"firstName"`
-		LastName     string `json:"lastName"`
-	*/
 	validNewUser := users.NewUser{
-		Email:        "test@test.com",
-		Password:     "hunter2",
-		PasswordConf: "hunter2",
-		UserName:     "AzureDiamond",
-		FirstName:    "John",
-		LastName:     "Johnson",
+		Email:        "coolguy@gmail.com",
+		Password:     "password",
+		PasswordConf: "password",
+		UserName:     "coolguy",
+		FirstName:    "Cool",
+		LastName:     "Guy",
 	}
 
-	//CREATE USERS FOR TEST CASE RESULTS
-	validUser, err := validNewUser.ToUser()
-	if err != nil {
-		log.Printf("error initializing test users")
-	}
-	validUser.ID = int64(1)
+	validUser, _ := validNewUser.ToUser()
 
-	//CREATE CASES
+	validUserCredentials := users.Credentials{
+		Email:    "coolguy@gmail.com",
+		Password: "password",
+	}
+
+	invalidUserCredentials := users.Credentials{
+		Email:    "cool@gmail.com",
+		Password: "notright",
+	}
+
 	cases := []struct {
 		name                string
 		method              string
-		idPath              string
-		credentials         *users.Credentials
+		requestContentType  string
+		requestBody         users.Credentials
+		validUser           *users.User
 		expectedStatusCode  int
 		expectedError       bool
 		expectedContentType string
 		expectedReturn      *users.User
 	}{
+
 		{
 			"Valid Post Request",
 			http.MethodPost,
-			"1",
-			&validCredentials,
-			http.StatusOK,
+			HeaderJSON,
+			validUserCredentials,
+			validUser,
+			http.StatusCreated,
 			false,
-			"application/json",
+			HeaderJSON,
 			validUser,
 		},
+
 		{
-			"Valid Post Request - Wrong Credentials Email",
-			http.MethodPost,
-			"1",
-			&invalidCredentialsEmail,
-			http.StatusUnauthorized,
-			true,
-			"text/plain; charset=utf-8",
-			validUser,
-		},
-		{
-			"Valid Post Request - Wrong Credentials Pass",
-			http.MethodPost,
-			"1",
-			&invalidCredentialsPass,
-			http.StatusUnauthorized,
-			true,
-			"text/plain; charset=utf-8",
-			validUser,
-		},
-		{
-			"Invalid Post Request - Wrong Method",
+			"Get Request (Shouldnt work)",
 			http.MethodGet,
-			"1",
-			&validCredentials,
+			HeaderJSON,
+			validUserCredentials,
+			validUser,
 			http.StatusMethodNotAllowed,
 			true,
-			"text/plain; charset=utf-8",
-			validUser,
+			"text/plain",
+			nil,
 		},
+
 		{
-			"Invalid Post Request - Wrong Header",
+			"Non JSON Header",
 			http.MethodPost,
-			"1",
-			&validCredentials,
+			"text/plain",
+			validUserCredentials,
+			validUser,
 			http.StatusUnsupportedMediaType,
 			true,
-			"text/plain; charset=utf-8",
-			validUser,
+			"text/plain",
+			nil,
 		},
+
 		{
-			"Invalid Post Request - Malformed Credentials",
+			"Invalid Usercredentials",
 			http.MethodPost,
-			"1",
-			malformedCredentials,
-			http.StatusInternalServerError,
-			true,
-			"text/plain; charset=utf-8",
+			HeaderJSON,
+			invalidUserCredentials,
 			validUser,
+			http.StatusUnauthorized,
+			true,
+			"text/plain",
+			nil,
 		},
 	}
 
-	//Generate and store new session for valid test
-	//newSessState := SessionState{time.Now(), *validUser}
-	//sessions.BeginSession()
-
 	for _, c := range cases {
-		log.Printf("running case name: %s", c.name)
-		buffer := new(bytes.Buffer)
-		encoder := json.NewEncoder(buffer)
-		if c.credentials != malformedCredentials {
-			encoder.Encode(c.credentials)
-		}
-		request := httptest.NewRequest(c.method, "/v1/users/"+c.idPath, buffer)
+		//We dont actually need to insert because of mock database handleTest.User.Insert()
 
-		if c.expectedStatusCode != http.StatusUnsupportedMediaType {
-			request.Header.Add("Content-Type", "application/json")
-		}
-		// if c.expectedStatusCode != http.StatusUnauthorized {
-		// 	request.Header.Add("Authorization", "Bearer "+sid.String())
-		// }
+		//Make a request with the validuser credentials
+		body, _ := json.Marshal(c.requestBody)
+		request := httptest.NewRequest(c.method, "/v1/sessions", strings.NewReader(string(body)))
+		request.Header.Set(HeaderContentType, c.requestContentType)
 
 		recorder := httptest.NewRecorder()
-		context.SessionsHandler(recorder, request)
+
+		handleTest.SessionsHandler(recorder, request)
 		response := recorder.Result()
 
-		resContentType := response.Header.Get("Content-Type")
+		//Test Content type
+		resContentType := response.Header.Get(HeaderContentType)
 		if !c.expectedError && c.expectedContentType != resContentType {
-			t.Errorf("case %s: incorrect return type: expected: %s received: %s",
-				c.name, c.expectedContentType, resContentType)
+			t.Errorf("case %s: incorrect return type: expected %s but recieved %s", c.name, c.expectedContentType, resContentType)
 		}
 
 		resStatusCode := response.StatusCode
 		if c.expectedStatusCode != resStatusCode {
-			t.Errorf("case %s: incorrect status code: expected: %d received: %d",
+			t.Errorf("case %s: incorrect status code: expected: %d recieved: %d",
 				c.name, c.expectedStatusCode, resStatusCode)
 		}
 
 		user := &users.User{}
 		err := json.NewDecoder(response.Body).Decode(user)
 		if c.expectedError && err == nil {
-			t.Errorf("case %s: expected error but received none", c.name)
+			t.Errorf("case %s: expected error but revieved none", c.name)
 		}
 
+		//Make sure you get back whats in the fake db
 		if !c.expectedError && c.expectedReturn.Email != user.Email && string(c.expectedReturn.PassHash) != string(user.PassHash) &&
 			c.expectedReturn.FirstName != user.FirstName && c.expectedReturn.LastName != user.LastName {
-			t.Errorf("case %s: incorrect return: expected %v but received %v",
+			t.Errorf("case %s: incorrect return: expected %v but revieved %v",
 				c.name, c.expectedReturn, user)
 		}
+
 	}
+
 }
 
-func TestContext_DELETESpecificSessionHandler(t *testing.T) {
-	redisaddr := os.Getenv("REDISADDR")
-	if len(redisaddr) == 0 {
-		redisaddr = "172.17.0.2:6379"
-	}
+func TestSpecificSessionHandler(t *testing.T) {
 
-	client := redis.NewClient(&redis.Options{
-		Addr: redisaddr,
-	})
+	fakeConn := users.NewFakeConnection()
+	fakeSession := sessions.NewMemStore(defaultSessionDuration, defaultSessionDuration)
 
-	context := &Context{
-		Key:           "testkey",
-		SessionsStore: sessions.NewRedisStore(client, time.Hour), //sessions.NewMemStore(time.Hour, time.Hour),
-		UsersStore:    &users.MySQLStore{},                       //&users.MyMockStore{},
+	var handleTest = HandlerContext{
+		Key:     "fakesigningkey",
+		User:    fakeConn,
+		Session: fakeSession,
 	}
 
 	validNewUser := users.NewUser{
-		Email:        "test@test.com",
-		Password:     "hunter2",
-		PasswordConf: "hunter2",
-		UserName:     "AzureDiamond",
-		FirstName:    "John",
-		LastName:     "Johnson",
+		Email:        "coolguy@gmail.com",
+		Password:     "password",
+		PasswordConf: "password",
+		UserName:     "coolguy",
+		FirstName:    "Cool",
+		LastName:     "Guy",
 	}
 
-	//CREATE USERS FOR TEST CASE RESULTS
-	validUser, err := validNewUser.ToUser()
-	if err != nil {
-		log.Printf("error initializing test users")
-	}
-	validUser.ID = int64(1)
+	validUser, _ := validNewUser.ToUser()
 
 	cases := []struct {
-		name                string
-		method              string
-		idPath              string
-		useValidCredentials bool
-		expectedStatusCode  int
-		expectedError       bool
-		expectedContentType string
-		expectedReturn      string
+		name               string
+		method             string
+		requestContentType string
+		validUser          *users.User
+		expectedStatusCode int
+		expectedError      bool
+		url                string
 	}{
+
 		{
 			"Valid Delete Request",
 			http.MethodDelete,
-			"mine",
-			true,
+			HeaderJSON,
+			validUser,
 			http.StatusOK,
 			false,
-			"text/plain; charset=utf-8",
-			"signed out",
+			"/v1/sessions/mine",
 		},
+
 		{
-			"Invalid Delete Request - Invalid Method",
-			http.MethodPatch,
-			"1",
+			"Non Delete",
+			http.MethodGet,
+			HeaderJSON,
+			validUser,
+			http.StatusOK,
 			true,
-			http.StatusMethodNotAllowed,
-			true,
-			"text/plain; charset=utf-8",
-			"Expected Error",
+			"/v1/sessions/mine",
 		},
+
 		{
-			"Invalid Delete Request - Trying to log out another user",
-			http.MethodDelete,
-			"2",
-			true,
+			"Invalid",
+			http.MethodGet,
+			HeaderJSON,
+			validUser,
 			http.StatusForbidden,
 			true,
-			"text/plain; charset=utf-8",
-			"Expected Error",
-		},
-		{
-			"Invalid Delete Request - No existing session",
-			http.MethodDelete,
-			"2",
-			false,
-			http.StatusUnauthorized,
-			true,
-			"text/plain; charset=utf-8",
-			"Expected Error",
+			"/v1/sessions/notmine",
 		},
 	}
 
 	for _, c := range cases {
 
-		log.Printf("\n\nrunning case name: %s", c.name)
-		request := httptest.NewRequest(c.method, "/v1/sessions/"+c.idPath, nil)
-
-		if c.expectedStatusCode != http.StatusUnsupportedMediaType {
-			request.Header.Add("Content-Type", "application/json")
-		}
-
+		request := httptest.NewRequest(c.method, c.url, nil)
 		recorder := httptest.NewRecorder()
-		//Trying to create a session for the valid user
-		if c.useValidCredentials {
-			newSessState := SessionState{time.Now(), *validUser}
-			sid, err := sessions.BeginSession(context.Key, context.SessionsStore, &newSessState, recorder)
-			if err != nil {
-				log.Fatal(err.Error())
-			}
-			request.Header.Add("Authorization", "Bearer "+sid.String())
 
+		var sessionState UserSession
+		sessionState.User = *validUser
+		sessionState.Usertime = time.Now()
+
+		sid, _ := sessions.BeginSession(handleTest.Key, handleTest.Session, &sessionState, recorder)
+
+		var testState UserSession
+		err := handleTest.Session.Get(sid, &testState)
+
+		if c.validUser.ID != testState.User.ID || err != nil {
+			t.Errorf("The sessionstate was not initalized properly")
 		}
 
-		context.SpecificSessionHandler(recorder, request)
+		request.Header.Add(HeaderAuth, recorder.Header().Get(HeaderAuth))
+		handleTest.SpecificSessionHandler(recorder, request)
+
 		response := recorder.Result()
-
-		resContentType := response.Header.Get("Content-Type")
-		if !c.expectedError && c.expectedContentType != resContentType {
-			t.Errorf("case %s: incorrect return type: expected: %s received: %s",
-				c.name, c.expectedContentType, resContentType)
-		}
 
 		resStatusCode := response.StatusCode
 		if c.expectedStatusCode != resStatusCode {
-			t.Errorf("case %s: incorrect status code: expected: %d received: %d",
+			t.Errorf("case %s: incorrect status code: expected: %d recieved: %d",
 				c.name, c.expectedStatusCode, resStatusCode)
 		}
 
-		// user := &users.User{}
-		// err := json.NewDecoder(response.Body).Decode(user)
-		// if c.expectedError && err == nil {
-		// 	t.Errorf("case %s: expected error but received none", c.name)
-		// }
-		responseData, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			t.Errorf("Crashed trying to read response data")
-		}
-		responseString := string(responseData)
-		log.Printf("Returned string was: %s", responseString)
+		//Check that it is deleted
+		testState = UserSession{}
+		err = handleTest.Session.Get(sid, &testState)
 
-		if !c.expectedError && c.expectedReturn != "signed out" {
-			t.Errorf("case %s: incorrect return: expected %v but received %v",
-				c.name, c.expectedReturn, responseString)
+		if err == nil {
+			t.Errorf("Session was not removed properly")
 		}
+
 	}
+
 }

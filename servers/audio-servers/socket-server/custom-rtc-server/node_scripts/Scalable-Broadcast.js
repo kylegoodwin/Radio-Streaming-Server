@@ -8,6 +8,7 @@ var pushLogs = require('./support/pushLogs.js');
 var users = {};
 var broadcasts = [];
 const Stream = require("./stream-schema")
+const Request = require("./../../node_modules/request")
 
 var mdport = process.env.MDPORT;
 
@@ -35,114 +36,144 @@ module.exports = exports = function (config, socket, maxRelayLimitPerUser) {
     }
 
     socket.on('join-broadcast', function (user) {
+        console.log("rawuser")
+        console.log(user)
 
-        console.log(users)
-        try {
-            if (!users[user.userid]) {
-                socket.userid = user.userid;
-                socket.isScalableBroadcastSocket = true;
-
-                users[user.userid] = {
-                    userid: user.userid,
-                    broadcastId: user.broadcastId,
-                    isBroadcastInitiator: false,
-                    maxRelayLimitPerUser: maxRelayLimitPerUser,
-                    relayReceivers: [],
-                    receivingFrom: null,
-                    canRelay: false,
-                    typeOfStreams: user.typeOfStreams || {
-                        audio: true,
-                        video: true
-                    },
-                    socket: socket
-                };
-
-                notifyBroadcasterAboutNumberOfViewers(user.broadcastId);
-            }
-
-            var relayUser = getFirstAvailableBroadcaster(user.broadcastId, maxRelayLimitPerUser);
-
-            if (relayUser === 'ask-him-rejoin') {
-                socket.emit('rejoin-broadcast', user.broadcastId);
-                return;
-            }
-
-            if (relayUser && user.userid !== user.broadcastId) {
-                var hintsToJoinBroadcast = {
-                    typeOfStreams: relayUser.typeOfStreams,
-                    userid: relayUser.userid,
-                    broadcastId: relayUser.broadcastId
-                };
-
-                users[user.userid].receivingFrom = relayUser.userid;
-                users[relayUser.userid].relayReceivers.push(
-                    users[user.userid]
-                );
-                users[user.broadcastId].lastRelayuserid = relayUser.userid;
-
-                socket.emit('join-broadcaster', hintsToJoinBroadcast);
-
-                // logs for current socket
-                socket.emit('logs', 'You <' + user.userid + '> are getting data/stream from <' + relayUser.userid + '>');
-
-                // logs for target relaying user
-                relayUser.socket.emit('logs', 'You <' + relayUser.userid + '>' + ' are now relaying/forwarding data/stream to <' + user.userid + '>');
-            } else {
-                broadcasts.push(user.broadcastId);
-                users[user.userid].isBroadcastInitiator = true;
-                
-                console.log("before the db stuff");
-
-                let broadcast = new Stream ({
-                    streamChannelID: 1,
-                    name: user.broadcastId,
-                    createdAt: Date.now(),
-                    creator: 0,
-                    active: true,
-                    activelisteners: 0
-                });
-        
-                
-                broadcast.save(function (err) {
-                    if (err) {
-                        console.log("there was an error");
-                        console.log(err)
-                        return
-                    }
-                    console.log("channel created in db");
-                });
-
-                socket.emit('start-broadcasting', users[user.userid].typeOfStreams);
-
-                // logs to tell he is now broadcast initiator
-                socket.emit('logs', 'You <' + user.userid + '> are now serving the broadcast.');
-            }
-        } catch (e) {
-            pushLogs(config, 'join-broadcast', e);
+        var headers = {
+            'Authorization': user.gatewayAuth
         }
+
+        // Configure the request
+        var options = {
+            url: 'https://audio-api.kjgoodwin.me/v1/users/me',
+            method: 'GET',
+            headers: headers
+        }
+
+        let authUserID = "";
+
+        Request(options, function (error, response, body) {
+            if (!error && response.statusCode == 200) {
+                // Print out the response body
+                console.log(" WE MADE IT INSIDE OF THE AUTH CHECK")
+                console.log(body)
+                authUserID = JSON.parse(body).id
+                console.log(authUserID)
+            }
+
+
+
+
+            try {
+                if (!users[user.userid]) {
+                    socket.userid = user.userid;
+                    socket.isScalableBroadcastSocket = true;
+
+                    users[user.userid] = {
+                        userid: user.userid,
+                        broadcastId: user.broadcastId,
+                        isBroadcastInitiator: false,
+                        maxRelayLimitPerUser: maxRelayLimitPerUser,
+                        relayReceivers: [],
+                        receivingFrom: null,
+                        canRelay: false,
+                        typeOfStreams: user.typeOfStreams || {
+                            audio: true,
+                            video: true
+                        },
+                        socket: socket
+                    };
+
+                    notifyBroadcasterAboutNumberOfViewers(user.broadcastId);
+                }
+
+                var relayUser = getFirstAvailableBroadcaster(user.broadcastId, maxRelayLimitPerUser);
+
+                if (relayUser === 'ask-him-rejoin') {
+                    socket.emit('rejoin-broadcast', user.broadcastId);
+                    return;
+                }
+
+                if (relayUser && user.userid !== user.broadcastId) {
+                    var hintsToJoinBroadcast = {
+                        typeOfStreams: relayUser.typeOfStreams,
+                        userid: relayUser.userid,
+                        broadcastId: relayUser.broadcastId
+                    };
+
+                    users[user.userid].receivingFrom = relayUser.userid;
+                    users[relayUser.userid].relayReceivers.push(
+                        users[user.userid]
+                    );
+                    users[user.broadcastId].lastRelayuserid = relayUser.userid;
+                    console.log("auth toekn print")
+                    console.log(user.authToken)
+
+                    if( authUserID != ""){
+                        Stream.findOneAndUpdate( { channelID: user.broadcastId}, { $push: {activeListeners: authUserID }}, function(err,response){
+                            if( err){
+                                console.log("err updating activelsitner " + err)
+                            }
+                            console.log("added active listener")
+                        });
+
+
+                    }
+
+                    socket.emit('join-broadcaster', hintsToJoinBroadcast);
+
+                    // logs for current socket
+                    socket.emit('logs', 'You <' + user.userid + '> are getting data/stream from <' + relayUser.userid + '>');
+
+                    // logs for target relaying user
+                    relayUser.socket.emit('logs', 'You <' + relayUser.userid + '>' + ' are now relaying/forwarding data/stream to <' + user.userid + '>');
+
+
+
+
+                } else {
+                    // This is when the user begins a broadcast
+                    console.log("user:")
+                    console.log(user)
+
+                    // broadcasts.push(user.broadcastId);
+                    users[user.userid].isBroadcastInitiator = true;
+
+
+                    if (authUserID != "") {
+
+                        Stream.findOneAndUpdate({ channelID: user.broadcastId, "creator.id": authUserID }, { active: true }, function (err, response) {
+
+                            if (err) {
+                                console.log("error updating the current socket, you are not the owner of the stream!");
+                                socket.emit('failed-broadcast-start', 'you do not own the broadcast');
+                            } else if (response) {
+                                socket.emit('start-broadcasting', users[user.userid].typeOfStreams);
+                                // logs to tell he is now broadcast initiator
+                                socket.emit('logs', 'You <' + user.userid + '> are now serving the broadcast.');
+                            } else {
+                                socket.emit('broadcast-doesnt-exist', 'broadcast not found in database');
+                            }
+
+                            console.log("stream successfully posted as active");
+
+                        });
+                    } else {
+                        socket.emit('failed-broadcast-start', 'you do not own the broadcast');
+                    }
+
+
+
+                }
+            } catch (e) {
+                pushLogs(config, 'join-broadcast', e);
+            }
+
+        });
     });
 
     socket.on('scalable-broadcast-message', function (message) {
         socket.broadcast.emit('scalable-broadcast-message', message);
-    });
-
-    socket.on('list-broadcasters', function () {
-        /*
-        if (users[socket.userid]) {
-            users[socket.userid].canRelay = true;
-        }
-        */
-        /*
-         var uTest = [];
-         for( user in users){
-             console.log("user " + user)
-             if( user.isBroadcastInitiator){
-                 uTest.push(user)
-             }
-         }
-         */
-        socket.emit('user-list-test', broadcasts)
-        console.log(broadcasts);
     });
 
     socket.on('can-relay-broadcast', function () {
@@ -214,8 +245,6 @@ module.exports = exports = function (config, socket, maxRelayLimitPerUser) {
     // this even is called from "signaling-server.js"
     socket.ondisconnect = function () {
 
-
-
         console.log("THE DISCCONET IS ALSO HAPPENING HERE")
         try {
             if (!socket.isScalableBroadcastSocket) return;
@@ -228,12 +257,34 @@ module.exports = exports = function (config, socket, maxRelayLimitPerUser) {
                 notifyBroadcasterAboutNumberOfViewers(user.broadcastId, true);
             } else {
 
-                console.log("HERERERERER")
                 var index = broadcasts.indexOf(user.broadcastId);
                 if (index > -1) {
                     broadcasts.splice(index, 1);
-
                 }
+
+                /*
+                Stream.deleteOne({channelID: user.broadcastId}, function(err){
+
+                    if(err){
+                        console.log("error, stream was not successfully deleted");
+                    }
+
+                    console.log("stream successfully deleted");
+                });
+                */
+
+
+                Stream.findOneAndUpdate({ channelID: user.broadcastId }, { active: false }, function (err) {
+
+                    if (err) {
+                        console.log("error, stream was not successfully deleted");
+                    }
+
+                    console.log("stream successfully went down");
+                });
+
+
+
 
             }
 
@@ -377,3 +428,6 @@ function getFirstAvailableBroadcaster(broadcastId, maxRelayLimitPerUser) {
         pushLogs(config, 'getFirstAvailableBroadcaster', e);
     }
 }
+
+
+

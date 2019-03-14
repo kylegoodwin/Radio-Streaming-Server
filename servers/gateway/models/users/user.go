@@ -54,27 +54,27 @@ type Updates struct {
 //any of the validation rules fail, or nil if its valid
 func (nu *NewUser) Validate() error {
 	//TODO: validate the new user according to these rules:
+
 	//- Email field must be a valid email address (hint: see mail.ParseAddress)
 	_, err := mail.ParseAddress(nu.Email)
-	if err != nil {
-		return fmt.Errorf("Email must be in the correct format (i.e. someone@somewhere.etc)")
-	}
 
+	if err != nil {
+		return fmt.Errorf(err.Error())
+	}
 	//- Password must be at least 6 characters
 	if len(nu.Password) < 6 {
-		return fmt.Errorf("Password must be longer than 6 characters")
+		return fmt.Errorf("Password must be at least 6 characters")
 	}
 
 	//- Password and PasswordConf must match
 	if nu.Password != nu.PasswordConf {
-		return fmt.Errorf("Passwords must match")
+		return fmt.Errorf("Password doesnt match confirmation")
 	}
-
 	//- UserName must be non-zero length and may not contain spaces
-	if strings.Contains(nu.UserName, " ") || len(nu.UserName) == 0 {
-		return fmt.Errorf("UserName cannot be length 0 or contain special characters")
-	}
 
+	if len(nu.UserName) == 0 || strings.Contains(nu.UserName, " ") {
+		return fmt.Errorf("Username cannot have spaces and must be at least one character")
+	}
 	//use fmt.Errorf() to generate appropriate error messages if
 	//the new user doesn't pass one of the validation rules
 
@@ -87,24 +87,13 @@ func (nu *NewUser) ToUser() (*User, error) {
 	//TODO: call Validate() to validate the NewUser and
 	//return any validation errors that may occur.
 	err := nu.Validate()
+
 	if err != nil {
 		return nil, err
 	}
 
 	//if valid, create a new *User and set the fields
 	//based on the field values in `nu`.
-	mdFiver := md5.New()
-	mdFiver.Write([]byte(strings.TrimSpace(strings.ToLower(nu.Email))))
-	u := User{
-		ID:        0,
-		Email:     nu.Email,
-		PassHash:  []byte{},
-		UserName:  nu.UserName,
-		FirstName: nu.FirstName,
-		LastName:  nu.LastName,
-		PhotoURL:  "https://www.gravatar.com/avatar/" + hex.EncodeToString(mdFiver.Sum(nil)),
-	}
-
 	//Leave the ID field as the zero-value; your Store
 	//implementation will set that field to the DBMS-assigned
 	//primary key value.
@@ -112,12 +101,34 @@ func (nu *NewUser) ToUser() (*User, error) {
 	//for the user's email address.
 	//see https://en.gravatar.com/site/implement/hash/
 	//and https://en.gravatar.com/site/implement/images/
+	user := User{}
+	user.ID = 0
+	user.Email = strings.TrimSpace(strings.ToLower(nu.Email))
+
+	user.UserName = nu.UserName
+	user.FirstName = nu.FirstName
+	user.LastName = nu.LastName
+
+	hasher := md5.New()
+	_, err = hasher.Write([]byte(user.Email))
+
+	if err != nil {
+		return nil, err
+	}
+
+	gravHash := hex.EncodeToString(hasher.Sum(nil))
+
+	user.PhotoURL = gravatarBasePhotoURL + gravHash
 
 	//TODO: also call .SetPassword() to set the PassHash
 	//field of the User to a hash of the NewUser.Password
-	u.SetPassword(nu.Password)
+	err = user.SetPassword(nu.Password)
 
-	return &u, nil
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 //FullName returns the user's full name, in the form:
@@ -127,9 +138,15 @@ func (nu *NewUser) ToUser() (*User, error) {
 //this returns an empty string
 func (u *User) FullName() string {
 	//TODO: implement according to comment above
-	if len(u.FirstName) == 0 || len(u.LastName) == 0 {
-		return u.FirstName + u.LastName
+
+	if u.FirstName == "" && u.LastName == "" {
+		return ""
+	} else if u.FirstName == "" {
+		return u.LastName
+	} else if u.LastName == "" {
+		return u.FirstName
 	}
+
 	return u.FirstName + " " + u.LastName
 }
 
@@ -137,11 +154,14 @@ func (u *User) FullName() string {
 func (u *User) SetPassword(password string) error {
 	//TODO: use the bcrypt package to generate a new hash of the password
 	//https://godoc.org/golang.org/x/crypto/bcrypt
-	hashed, err := bcrypt.GenerateFromPassword([]byte(password), 0)
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcryptCost)
+
 	if err != nil {
 		return err
 	}
-	u.PassHash = hashed
+
+	u.PassHash = hash
+
 	return nil
 }
 
@@ -151,10 +171,13 @@ func (u *User) Authenticate(password string) error {
 	//TODO: use the bcrypt package to compare the supplied
 	//password with the stored PassHash
 	//https://godoc.org/golang.org/x/crypto/bcrypt
+
 	err := bcrypt.CompareHashAndPassword(u.PassHash, []byte(password))
+
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -163,7 +186,13 @@ func (u *User) Authenticate(password string) error {
 func (u *User) ApplyUpdates(updates *Updates) error {
 	//TODO: set the fields of `u` to the values of the related
 	//field in the `updates` struct
+
+	if updates.FirstName == "" || updates.LastName == "" {
+		return fmt.Errorf("Invalid update to user")
+	}
+
 	u.FirstName = updates.FirstName
 	u.LastName = updates.LastName
+
 	return nil
 }

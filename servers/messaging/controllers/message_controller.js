@@ -1,17 +1,20 @@
 const Message = require('../models/messageModel.js');
 const rabbit = require("./rabbit_handler")
 
-exports.newMessage = function(req, res, channelID, messageCreator){
+exports.newMessage = function(req, res){
+    var channelID = req.params.channelID
+    //var currentUser = parseInt(req.get("X-User"), 10)
+    var currentUser = JSON.parse(req.header("X-User"));
     var m = Message({
         channelID: channelID,
         body: req.body.body,
         createdAt: Date.now(),
-        creator: messageCreator
+        creator: currentUser
     })
     m.save(function(err) {
         if (err) {
             res.status = 500;
-            res.send("Error saving new message");
+            res.send("Error saving new message " + err);
             return
         }
         res.status = 201
@@ -23,8 +26,9 @@ exports.newMessage = function(req, res, channelID, messageCreator){
 }
 
 exports.specificMessage = function(req, res, next){
-    var urlSplit = req.originalUrl.split("/")
-    var messageID = parseInt(urlSplit[urlSplit.length-1], 10)
+    //var urlSplit = req.originalUrl.split("/")
+    var messageID = req.params.channelID
+    //var currentUser = parseInt(req.get("X-User"), 10)
     var currentUser = JSON.parse(req.header("X-User"));
 
     //find message from the url

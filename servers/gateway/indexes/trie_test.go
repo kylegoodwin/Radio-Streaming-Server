@@ -1,262 +1,161 @@
 package indexes
 
+//TODO: implement automated tests for your trie data structure
+
 import (
-	"log"
+	"fmt"
+	"reflect"
 	"testing"
 )
 
-//TODO: implement automated tests for your trie data structure
-
-func TestAdd(t *testing.T) {
-	//testTrie := NewTrie()
-
-	// testTrie.Add("a", int64(1))
-	// testTrie.Add("ab", int64(2))
-	// testTrie.Add("ab", int64(2))
-
-	cases := []struct {
-		name        string
-		key         string
-		value       int64
-		expectError bool
-	}{
-		{
-			"Single length key",
-			"A",
-			int64(1),
-			false,
-		},
-		{
-			"Multi length key",
-			"BC",
-			int64(1),
-			false,
-		},
-		{
-			"Multi length key - Repeat value",
-			"BC",
-			int64(1),
-			true,
-		},
-		{
-			"Multi length key - uses same branch",
-			"ABC",
-			int64(1),
-			false,
-		},
-	}
-
-	tt := NewTrie()
-
-	for _, c := range cases {
-		log.Printf("Running case: %s", c.name)
-		err := tt.Add(c.key, c.value)
-		if err != nil && !c.expectError {
-			t.Errorf("Case %v returned an unexpected error: %v", c.name, err.Error())
-		}
-		if c.expectError && err == nil {
-			t.Errorf("Expected error but did not receive one. Case: %v", c.name)
-		}
-	}
-
+type TestTuple struct {
+	key string
+	id  int64
 }
 
-func TestRemove(t *testing.T) {
-	testData := []struct {
-		key   string
-		value int64
-	}{
-		{
-			"H",
-			int64(1),
-		},
-		{
-			"HI",
-			int64(2),
-		},
-		{
-			"HEY",
-			int64(3),
-		},
-		{
-			"HELL",
-			int64(4),
-		},
-		{
-			"HE",
-			int64(5),
-		},
-		{
-			"HE",
-			int64(2),
-		},
-		{
-			"HE",
-			int64(3),
-		},
-		{
-			"HE",
-			int64(4),
-		},
-		{
-			"HEAR",
-			int64(2),
-		},
-	}
+func Test_Trie(t *testing.T) {
 
 	cases := []struct {
-		name        string
-		key         string
-		value       int64
-		expectError bool
+		name                 string
+		addValues            []TestTuple
+		findLimit            int64
+		findKey              string
+		removeValues         []TestTuple
+		expectError          bool
+		expectedBeforeDelete []int64
+		expectedAfterDelete  []int64
 	}{
 		{
-			"Remove and trim",
-			"HELL",
-			int64(4),
+			"Adding values only",
+			[]TestTuple{TestTuple{"a", 1}, TestTuple{"ab", 2}},
+			10,
+			"a",
+			nil,
 			false,
+			[]int64{1, 2},
+			[]int64{1, 2},
 		},
 		{
-			"Remove 1st child of root when there are children beneath it",
-			"H",
-			int64(1),
+			"Adding values with Unicode",
+			[]TestTuple{TestTuple{"a", 1}, TestTuple{"ab", 2}, TestTuple{"a😘", 3}},
+			10,
+			"a",
+			nil,
 			false,
+			[]int64{1, 2, 3},
+			[]int64{1, 2, 3},
 		},
 		{
-			"Remove one child from multi value node",
-			"HE",
-			int64(2),
+			"Adding values only with root node",
+			[]TestTuple{TestTuple{"a", 1}, TestTuple{"ab", 2}},
+			10,
+			"",
+			nil,
 			false,
+			[]int64{1, 2},
+			[]int64{1, 2},
 		},
 		{
-			"Remove and avoid trim",
-			"HE",
-			int64(5),
+			"Adding values and only getting a limited number backc",
+			[]TestTuple{TestTuple{"a", 1}, TestTuple{"ab", 2}},
+			1,
+			"a",
+			nil,
 			false,
+			[]int64{1},
+			[]int64{1},
 		},
 		{
-			"Remove when there are two children",
-			"HEY",
-			int64(3),
+			"Adding multi child values",
+			[]TestTuple{TestTuple{"a", 1}, TestTuple{"ab", 2}, TestTuple{"ac", 3}},
+			10,
+			"a",
+			nil,
 			false,
+			[]int64{1, 2, 3},
+			[]int64{1, 2, 3},
 		},
 		{
-			"Fail to find node",
-			"HAR",
-			int64(1),
+			"Removing all values",
+			[]TestTuple{TestTuple{"a", 1}, TestTuple{"ab", 2}, TestTuple{"ab", 3}},
+			10,
+			"a",
+			[]TestTuple{TestTuple{"a", 1}, TestTuple{"ab", 2}, TestTuple{"ab", 3}},
+			false,
+			[]int64{1, 2, 3},
+			[]int64{},
+		},
+		{
+			"Removing first value of branch only",
+			[]TestTuple{TestTuple{"a", 1}, TestTuple{"ab", 2}, TestTuple{"ab", 3}, TestTuple{"foo", 5}},
+			10,
+			"a",
+			[]TestTuple{TestTuple{"a", 1}},
+			false,
+			[]int64{1, 2, 3},
+			[]int64{2, 3},
+		},
+		{
+			"Removing recursivly",
+			[]TestTuple{TestTuple{"a", 1}, TestTuple{"ab", 2}, TestTuple{"abc", 3}, TestTuple{"foo", 5}},
+			10,
+			"f",
+			[]TestTuple{TestTuple{"foo", 5}},
+			false,
+			[]int64{5},
+			[]int64{},
+		},
+		{
+			"Removing recursivly with node above that has data",
+			[]TestTuple{TestTuple{"a", 1}, TestTuple{"ab", 2}, TestTuple{"abc", 3}, TestTuple{"foo", 5}},
+			10,
+			"a",
+			[]TestTuple{TestTuple{"abc", 3}},
+			false,
+			[]int64{1, 2, 3},
+			[]int64{1, 2},
+		},
+		{
+			"Removing key that doesnt exist",
+			[]TestTuple{TestTuple{"a", 1}, TestTuple{"ab", 2}, TestTuple{"abc", 3}, TestTuple{"foo", 5}},
+			10,
+			"f",
+			[]TestTuple{TestTuple{"darn", 55}},
 			true,
+			[]int64{5},
+			[]int64{},
 		},
-		{
-			"Fail to find value at key",
-			"H",
-			int64(5),
-			true,
-		},
+
+		//Need more unicode cases
+		//Also need cases where nothing should be returned
 	}
 
-	tt := NewTrie()
-
-	for _, d := range testData {
-		err := tt.Add(d.key, d.value)
-		if err != nil {
-			t.Errorf("Adding returned an unexpected error: %v", err.Error())
-		}
-
-	}
+	//Add values to trie
 	for _, c := range cases {
-		log.Printf("\n\n\nRunning case: %s", c.name)
+		fmt.Println(c.name)
+		tree := NewTrie()
 
-		err := tt.Remove(c.key, c.value)
-
-		if !c.expectError && err != nil {
-			t.Errorf("Case %v returned an unexpected error: %v", c.name, err.Error())
+		for _, tuple := range c.addValues {
+			tree.Add(tuple.key, tuple.id)
 		}
-		if c.expectError && err == nil {
-			t.Errorf("Expected error but did not receive one. Case: %v", c.name)
+
+		//After add before delete tests
+		if !reflect.DeepEqual(tree.Find(c.findKey, c.findLimit), c.expectedBeforeDelete) {
+			t.Errorf("Error with find operation on trie after adding on case: %s", c.name)
 		}
-	}
+		for _, tuple := range c.removeValues {
+			fmt.Println("*** Removing " + tuple.key + string(tuple.id))
+			err := tree.Remove(tuple.key, tuple.id)
+			if !c.expectError && err != nil {
+				t.Errorf("Unexpected error removing values from trie for case: %s Error message: %s", c.name, err.Error())
+			}
+		}
 
-	//Test specific if statement concerning removal of leaf node that is child of root
-	tt = NewTrie()
-	err := tt.Add("HI", int64(1))
-	if err != nil {
-		t.Error("Broke on Add, special case")
-	}
-	err = tt.Remove("HI", int64(1))
-	if err != nil {
-		t.Error("Broke on Remove, special case")
-	}
-
-}
-
-func TestFind(t *testing.T) {
-	testData := []struct {
-		key   string
-		value int64
-	}{
-		{
-			"HI",
-			int64(3),
-		},
-		{
-			"HI",
-			int64(1),
-		},
-		{
-			"HELLO",
-			int64(2),
-		},
-	}
-
-	cases := []struct {
-		name        string
-		valueCount  int
-		prefix      string
-		expectError bool
-	}{
-		{
-			"Find at child of root",
-			2,
-			"H",
-			false,
-		},
-		{
-			"Find large number",
-			20,
-			"H",
-			false,
-		},
-		{
-			"Find with longer prefix",
-			2,
-			"HEL",
-			false,
-		},
-	}
-
-	tt := NewTrie()
-
-	for _, d := range testData {
-		err := tt.Add(d.key, d.value)
-		if err != nil {
-			t.Errorf("Adding returned an unexpected error: %v", err.Error())
+		//After add before delete tests
+		if !c.expectError && (len(tree.Find(c.findKey, c.findLimit)) != len(c.expectedAfterDelete) && !reflect.DeepEqual(tree.Find(c.findKey, c.findLimit), c.expectedAfterDelete)) {
+			t.Errorf("Error with find operation on trie after round of deletions on case %s", c.name)
 		}
 
 	}
-	for _, c := range cases {
-		log.Printf("\n\n\nRunning case: %s", c.name)
 
-		foundValues, err := tt.Find(c.valueCount, c.prefix)
-
-		log.Println("\nPrinting result slice:")
-		for i, x := range foundValues {
-			log.Printf("Result set index %v has value %v", i, x)
-		}
-		if !c.expectError && err != nil {
-			t.Errorf("Case %v returned an unexpected error: %v", c.name, err.Error())
-		}
-		if c.expectError && err == nil {
-			t.Errorf("Expected error but did not receive one. Case: %v", c.name)
-		}
-	}
 }
