@@ -77,12 +77,9 @@ exports.allChannels = function (req, res) {
 }
 
 exports.specificChannel = function (req, res, next) {
-        console.log("specificChannels")
-    console.log(res)
     var urlSplit = req.originalUrl.split("/")
     var channelID = parseInt(urlSplit[urlSplit.length-1], 10)
-    var currentUser = parseInt(req.get("X-User"), 10)
-    console.log(channelID)
+    var currentUser = JSON.parse(req.header("X-User"));
 
     //find channel from the url
     Channel.findOne({id:channelID}, function(err, channel){
@@ -212,7 +209,6 @@ exports.specificChannel = function (req, res, next) {
 exports.channelMembers = function(req, res, next){
     var urlSplit = req.originalUrl.split("/")
     var channelID = parseInt(urlSplit[urlSplit.length-2], 10)
-    console.log(channelID)
     var currentUser = parseInt(req.get("X-User"), 10)
 
     //find channel from the url

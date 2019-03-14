@@ -2,7 +2,6 @@ const Message = require('../models/messageModel.js');
 const rabbit = require("./rabbit_handler")
 
 exports.newMessage = function(req, res, channelID, messageCreator){
-    console.log(req.body.body)
     var m = Message({
         channelID: channelID,
         body: req.body.body,
@@ -26,8 +25,7 @@ exports.newMessage = function(req, res, channelID, messageCreator){
 exports.specificMessage = function(req, res, next){
     var urlSplit = req.originalUrl.split("/")
     var messageID = parseInt(urlSplit[urlSplit.length-1], 10)
-    var currentUser = parseInt(req.get("X-User"), 10)
-    console.log(messageID + " messageID")
+    var currentUser = JSON.parse(req.header("X-User"));
 
     //find message from the url
     if (req.method == "PATCH"){
