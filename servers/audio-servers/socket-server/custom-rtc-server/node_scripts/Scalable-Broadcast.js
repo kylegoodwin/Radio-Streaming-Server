@@ -37,6 +37,8 @@ module.exports = exports = function (config, socket, maxRelayLimitPerUser) {
     socket.on('join-broadcast', function (user) {
         console.log("rawuser")
         console.log(user)
+
+
         try {
             if (!users[user.userid]) {
                 socket.userid = user.userid;
@@ -79,7 +81,10 @@ module.exports = exports = function (config, socket, maxRelayLimitPerUser) {
                     users[user.userid]
                 );
                 users[user.broadcastId].lastRelayuserid = relayUser.userid;
-
+                console.log("auth toekn print")
+                console.log(user.authToken)
+                if( user.gatewayAuth ){
+                
                 socket.emit('join-broadcaster', hintsToJoinBroadcast);
 
                 // logs for current socket
@@ -87,6 +92,10 @@ module.exports = exports = function (config, socket, maxRelayLimitPerUser) {
 
                 // logs for target relaying user
                 relayUser.socket.emit('logs', 'You <' + relayUser.userid + '>' + ' are now relaying/forwarding data/stream to <' + user.userid + '>');
+                }else{
+                    console.log("no auth token provided")
+                }
+
             } else {
             // This is when the user begins a broadcast
             console.log("user:")
@@ -95,24 +104,6 @@ module.exports = exports = function (config, socket, maxRelayLimitPerUser) {
                 broadcasts.push(user.broadcastId);
                 users[user.userid].isBroadcastInitiator = true;
 
-
-
-        
-                /*codethatworked
-Stream.findOneAndUpdate({ channelID: user.broadcastId},{active: true}, function(err){
-
-                if(err){
-                    console.log("error updating the current socket");
-                }
-
-                console.log("stream successfully posted as active");
-            });
-
-                socket.emit('start-broadcasting', users[user.userid].typeOfStreams);
-
-                */
-
-                
                 Stream.findOneAndUpdate({ channelID: user.broadcastId }, { active: true }, function (err,response) {
 
                     if (err) {

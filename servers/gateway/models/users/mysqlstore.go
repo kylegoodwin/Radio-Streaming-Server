@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Radio-Streaming-Server/servers/gateway/indexes"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/kylegoodwin/assignments-kylegoodwin/servers/gateway/indexes"
 )
 
 //MySQLStore is an abstraction of the MySQL database
@@ -55,7 +55,8 @@ func (db *MySQLStore) Insert(user *User) (*User, error) {
 
 //GetByID returns the user with the associated id from the database
 func (db *MySQLStore) GetByID(id int64) (*User, error) {
-
+	fmt.Println("ID IN MYSQLSTORE")
+	fmt.Println(id)
 	selectStatement := "Select * From users Where id=?"
 	row := db.Client.QueryRow(selectStatement, id)
 

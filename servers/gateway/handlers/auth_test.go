@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kylegoodwin/assignments-kylegoodwin/servers/gateway/models/logins"
+	"github.com/Radio-Streaming-Server/servers/gateway/models/logins"
 
-	"github.com/kylegoodwin/assignments-kylegoodwin/servers/gateway/sessions"
+	"github.com/Radio-Streaming-Server/servers/gateway/sessions"
 
-	"github.com/kylegoodwin/assignments-kylegoodwin/servers/gateway/models/users"
+	"github.com/Radio-Streaming-Server/servers/gateway/models/users"
 )
 
 /*

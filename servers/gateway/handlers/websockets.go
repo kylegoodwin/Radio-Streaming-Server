@@ -9,7 +9,7 @@ import (
 	"github.com/streadway/amqp"
 
 	"github.com/gorilla/websocket"
-	"github.com/kylegoodwin/assignments-kylegoodwin/servers/gateway/sessions"
+	"github.com/Radio-Streaming-Server/servers/gateway/sessions"
 )
 
 // Control messages for websocket

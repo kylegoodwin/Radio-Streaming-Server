@@ -1,10 +1,10 @@
 package handlers
 
 import (
-	"github.com/kylegoodwin/assignments-kylegoodwin/servers/gateway/indexes"
-	"github.com/kylegoodwin/assignments-kylegoodwin/servers/gateway/models/logins"
-	"github.com/kylegoodwin/assignments-kylegoodwin/servers/gateway/models/users"
-	"github.com/kylegoodwin/assignments-kylegoodwin/servers/gateway/sessions"
+	"github.com/Radio-Streaming-Server/servers/gateway/indexes"
+	"github.com/Radio-Streaming-Server/servers/gateway/models/logins"
+	"github.com/Radio-Streaming-Server/servers/gateway/models/users"
+	"github.com/Radio-Streaming-Server/servers/gateway/sessions"
 )
 
 //TODO: define a handler context struct that

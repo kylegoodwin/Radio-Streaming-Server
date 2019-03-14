@@ -11,11 +11,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kylegoodwin/assignments-kylegoodwin/servers/gateway/models/logins"
+	"github.com/Radio-Streaming-Server/servers/gateway/models/logins"
 
-	"github.com/kylegoodwin/assignments-kylegoodwin/servers/gateway/sessions"
+	"github.com/Radio-Streaming-Server/servers/gateway/sessions"
 
-	"github.com/kylegoodwin/assignments-kylegoodwin/servers/gateway/models/users"
+	"github.com/Radio-Streaming-Server/servers/gateway/models/users"
 )
 
 const HeaderContentType = "Content-Type"
@@ -127,7 +127,31 @@ func (context *HandlerContext) SpecificUserHandler(w http.ResponseWriter, r *htt
 
 	var id int64
 	idString := path.Base(r.URL.Path)
+
+	var sessionState *UserSession
+
+	//Gets the users state from the sessionID, it gets populated into the sessionState
+	_, err := sessions.GetState(r, context.Key, context.Session, &sessionState)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error getting users session state: %s", err.Error()), http.StatusUnauthorized)
+		return
+	}
+
+	if idString == "me" {
+		id = sessionState.User.ID
+	} else {
+		convID, err := strconv.Atoi(idString)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Unable to convert UserID from a string to an int"),
+				http.StatusBadRequest)
+			return
+		}
+		id = int64(convID)
+	}
+
 	method := r.Method
+
+	//If the request is a GET
 
 	if method == http.MethodGet {
 		//Get the user profile associated with the requested user ID from your store.
@@ -152,33 +176,8 @@ func (context *HandlerContext) SpecificUserHandler(w http.ResponseWriter, r *htt
 			http.Error(w, fmt.Sprintf("Error encoding the users JSON"), http.StatusInternalServerError)
 			return
 		}
-		return
-	}
 
-	var sessionState *UserSession
-
-	//Gets the users state from the sessionID, it gets populated into the sessionState
-	_, err := sessions.GetState(r, context.Key, context.Session, &sessionState)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Error getting users session state: %s", err.Error()), http.StatusUnauthorized)
-		return
-	}
-
-	if idString == "me" {
-		id = sessionState.User.ID
-	} else {
-		convID, err := strconv.Atoi(idString)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Unable to convert UserID from a string to an int"),
-				http.StatusBadRequest)
-			return
-		}
-		id = int64(convID)
-	}
-
-	//If the request is a GET
-
-	if method == http.MethodPatch {
+	} else if method == http.MethodPatch {
 
 		//This should work because you get the id from "me"s sessionState earlier
 		if sessionState.User.ID != id {

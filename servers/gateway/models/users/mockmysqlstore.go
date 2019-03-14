@@ -1,6 +1,6 @@
 package users
 
-import "github.com/kylegoodwin/assignments-kylegoodwin/servers/gateway/indexes"
+import "github.com/Radio-Streaming-Server/servers/gateway/indexes"
 
 type MockStore struct {
 }

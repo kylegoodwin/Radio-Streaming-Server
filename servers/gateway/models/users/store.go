@@ -3,7 +3,7 @@ package users
 import (
 	"errors"
 
-	"github.com/kylegoodwin/assignments-kylegoodwin/servers/gateway/indexes"
+	"github.com/Radio-Streaming-Server/servers/gateway/indexes"
 )
 
 //ErrUserNotFound is returned when the user can't be found
