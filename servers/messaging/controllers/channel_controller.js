@@ -6,9 +6,6 @@ const express = require('express');
 
 
 exports.specificChannel = function (req, res, next) {
-    console.log("specificChannels you made it here")
-    console.log(res)
-
     var channelID = req.params.channelID;
 
     //find channel from the url
