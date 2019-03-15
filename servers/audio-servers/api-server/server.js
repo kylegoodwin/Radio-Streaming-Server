@@ -22,18 +22,18 @@ var Stream = require("./stream-schema");
 
 app.use(express.json());
 
-app.all('/v1/channels', function (req, res, next) {
+app.all('/v1/channels*', function (req, res, next) {
 
   let xUserValue = req.get("X-User")
   if (xUserValue == undefined) {
-      const err = new Error('User Not Authenticated');
-      err.status = 401;
-      next(err);
+    const err = new Error('User Not Authenticated');
+    err.status = 401;
+    next(err);
   } else {
-      next()
+    next()
   }
 
-})
+});
 
 app.get('/v1/audio/client', function (req, res) {
   res.sendFile(__dirname + '/index.html');
@@ -43,7 +43,7 @@ app.get('/v1/audio/directclient/*', function (req, res) {
   res.sendFile(__dirname + '/test-client.html');
 });
 
-app.patch("/v1/audio/channels/:streamID", function (req, res) {
+app.patch("/v1/channels/:streamID", function (req, res) {
 
   let id = req.params.streamID;
   let newName = req.body.name;
@@ -60,13 +60,54 @@ app.patch("/v1/audio/channels/:streamID", function (req, res) {
   });
 
 
+});
+
+app.all("/v1/channels/:channelID/listeners", function (req, res) {
+
+  let xUserValue = req.get("X-User")
+
+  let id = req.params.channelID;
+  let authUserID = JSON.parse(xUserValue).id;
+
+  if (req.method == "POST") {
+
+    Stream.findOneAndUpdate({ channelID: id }, { $addToSet: { activeListeners: authUserID } },{new: true}, function (err, response) {
+      if (err) {
+        console.log("err updating activelsitner " + err)
+        res.status(500);
+        res.send("error updating activelistener")
+      }else{
+        console.log("added active listener")
+        res.send(response);
+      }
+
+    });
+
+  } else if (req.method == "DELETE") {
+
+    Stream.findOneAndUpdate({ channelID: id }, { $pullAll: { activeListeners: [authUserID] }},{new: true} , function (err, response) {
+      if (err) {
+        console.log("err updating activelsitner " + err)
+        res.status(500);
+        res.send("error delting activeliseter")
+      }else{
+        console.log("deleted active listener successsss")
+        res.send(response);
+      }
+
+    });
+
+
+  } else {
+    res.status(405)
+    res.send("Method Not Allowed")
+  }
+
 
 });
 
+app.post("/v1/channels", function (req, res) {
 
-
-app.post("/v1/audio/channels", function (req, res) {
- 
   //Get the user sending the request
   var currentUser = {};
   if (req.header("X-User")) {
@@ -115,9 +156,9 @@ app.post("/v1/audio/channels", function (req, res) {
           activeListeners: [0]
         });
 
-      broadcast.save();
-      console.log(broadcast);
-      res.json(broadcast);
+        broadcast.save();
+        console.log(broadcast);
+        res.json(broadcast);
 
       }
 
@@ -144,7 +185,7 @@ app.get('/v1/audio/socket', function (req, res) {
   res.sendFile(__dirname + "/node_modules/socket.io-client/dist/socket.io.js")
 });
 
-app.get('/v1/audio/channels/all', function (req, res) {
+app.get('/v1/channels/all', function (req, res) {
 
   Stream.find({}, function (err, response) {
 
@@ -160,7 +201,7 @@ app.get('/v1/audio/channels/all', function (req, res) {
 
 });
 
-app.get('/v1/audio/channels/live', function (req, res) {
+app.get('/v1/channels/live', function (req, res) {
 
   Stream.find({ active: true }, function (err, response) {
 
@@ -172,6 +213,47 @@ app.get('/v1/audio/channels/live', function (req, res) {
 
   });
 
+
+
+});
+
+
+
+//Handlers for username queri
+
+//channels?live=bool
+//channels?username=""
+//channels?
+
+app.get('/v1/channels', function(req,res){
+
+
+  let username = req.query.username;
+  let live = req.query.live;
+
+  let conditions = {};
+
+  if(username){
+    conditions['creator.userName'] = username;
+  }
+
+  if( live === "true"){
+    conditions.active = true
+  }
+
+
+  console.log(conditions);
+  Stream.find(conditions, function (err, response) {
+
+    if (err) {
+      console.log(err)
+      res.status(500);
+      res.send("Error retriving user streams");
+    }else{
+      res.json(response)
+    }
+
+  });
 
 
 });

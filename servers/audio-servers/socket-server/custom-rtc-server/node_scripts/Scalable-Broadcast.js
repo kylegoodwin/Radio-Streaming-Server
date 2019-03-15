@@ -61,9 +61,6 @@ module.exports = exports = function (config, socket, maxRelayLimitPerUser) {
                 console.log(authUserID)
             }
 
-
-
-
             try {
                 if (!users[user.userid]) {
                     socket.userid = user.userid;
@@ -98,7 +95,8 @@ module.exports = exports = function (config, socket, maxRelayLimitPerUser) {
                     var hintsToJoinBroadcast = {
                         typeOfStreams: relayUser.typeOfStreams,
                         userid: relayUser.userid,
-                        broadcastId: relayUser.broadcastId
+                        broadcastId: relayUser.broadcastId,
+                        authUserID: authUserID
                     };
 
                     users[user.userid].receivingFrom = relayUser.userid;
@@ -109,8 +107,9 @@ module.exports = exports = function (config, socket, maxRelayLimitPerUser) {
                     console.log("auth toekn print")
                     console.log(user.authToken)
 
+                    /*
                     if( authUserID != ""){
-                        Stream.findOneAndUpdate( { channelID: user.broadcastId}, { $push: {activeListeners: authUserID }}, function(err,response){
+                        Stream.findOneAndUpdate( { channelID: user.broadcastId}, { $addToSet: {activeListeners: authUserID }}, function(err,response){
                             if( err){
                                 console.log("err updating activelsitner " + err)
                             }
@@ -119,6 +118,7 @@ module.exports = exports = function (config, socket, maxRelayLimitPerUser) {
 
 
                     }
+                    */
 
                     socket.emit('join-broadcaster', hintsToJoinBroadcast);
 
@@ -142,7 +142,7 @@ module.exports = exports = function (config, socket, maxRelayLimitPerUser) {
 
                     if (authUserID != "") {
 
-                        Stream.findOneAndUpdate({ channelID: user.broadcastId, "creator.id": authUserID }, { active: true }, function (err, response) {
+                        Stream.findOneAndUpdate({ channelID: user.broadcastId, "creator.id": authUserID }, { active: true, goLiveTime: Date.now() }, function (err, response) {
 
                             if (err) {
                                 console.log("error updating the current socket, you are not the owner of the stream!");
@@ -183,7 +183,6 @@ module.exports = exports = function (config, socket, maxRelayLimitPerUser) {
     });
 
     socket.on('can-not-relay-broadcast', function () {
-        console.log("here");
         if (users[socket.userid]) {
             users[socket.userid].canRelay = false;
         }

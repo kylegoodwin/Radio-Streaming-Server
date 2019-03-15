@@ -35,6 +35,9 @@
         // if you enable below line, please also uncomment above "RecordRTC.js"
         var enableRecordings = false;
 
+        var currentAuthUser = "";
+
+        var globalSocket;
 
 
         var connection = new RTCMultiConnection();
@@ -62,6 +65,8 @@
         // user need to connect server, so that others can reach him.
         connection.connectSocket(function (socket) {
 
+            globalSocket = socket;
+
             socket.on('logs', function (log) {
                 console.log("log " + log)
             });
@@ -69,6 +74,11 @@
             // this event is emitted when a broadcast is already created.
             socket.on('join-broadcaster', function (hintsToJoinBroadcast) {
                 console.log('join-broadcaster', hintsToJoinBroadcast);
+                currentAuthUser = hintsToJoinBroadcast.authUserID
+                currentChannelID = hintsToJoinBroadcast.userid
+
+                console.log(" see if channelid works " + currentChannelID)
+                console.log("seeing if this works " + currentAuthUser);
 
                 connection.session = hintsToJoinBroadcast.typeOfStreams;
                 connection.sdpConstraints.mandatory = {
@@ -162,14 +172,10 @@
             socket.on('broadcast-doesnt-exist', function (responseText) {
                 console.log("this broadcast isnt in the database " + responseText);
             });
+
         });
 
         loadBroadcast();
-
-        window.onbeforeunload = function () {
-            // Firefox is ugly.
-            document.getElementById('open-or-join').disabled = false;
-        };
 
         var audioPreview = document.getElementById('audio-preview');
 
@@ -286,6 +292,7 @@
         connection.onstreamended = function () { };
 
         connection.onleave = function (event) {
+            console.log(" leavingthebroadcast!!!!!!!")
             if (event.userid !== audioPreview.userid) return;
 
             connection.getSocket(function (socket) {
