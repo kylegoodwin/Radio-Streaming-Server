@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <script src="https://audio-api.kjgoodwin.me/v1/audio/rtcjs"></script>
+    <script src="https://audio-api.kjgoodwin.me/v1/audio/adapter"></script>
+    <script src="https://audio-api.kjgoodwin.me/v1/audio/socket"></script>
+    <meta charset="utf-8">
+    <meta name="author" content="your name">
+    <meta name="description" content="description of your page">
+    <title>My Page Title</title>
+</head>
+
+<body>
+    <div class="logincontainer">
+        <h1> Log In To Start A Stream</h1>
+        <form id="login">
+            <label for="email">Email</label>
+            <br />
+            <input id="email" type="text" id="usrname" name="usrname"  enabled="true" required>
+            <br />
+            <label for="psw">Password</label>
+            <br />
+            <input id="psw" type="password" id="psw" name="psw" required>
+            <br />
+            <input type="submit" value="Submit" class="btn btn-secondary">
+        </form>
+    </div>
+    <div id="channels" hidden=true>
+        <h1> My Streams </h1>
+    </div>
+    <div id="status" hidden=true>
+            <h2>Update Stream Status </h2>
+            <input id="status-text" />
+            <button id="status-update" > Update </update>
+    </div>
+    <div class="new-channel" hidden>
+            <h2>Add New Stream</h2>
+            <label for="new-channelid" >Channel ID</label>
+            <input id="new-channelid" />
+            <label for="new-displayname" >Display Name</label>
+            <input id="new-displayname" />
+            <label for="new-description" >Description</label>
+            <input id="new-description" />
+            <button id="new-channel-button" > Add </update>
+    </div>
+
+
+
+
+</body>
+
+<script src="index.js" > </script>
+
+</html>

@@ -208,15 +208,16 @@
             if (connection.isInitiator == false && event.type === 'remote') {
                 // he is merely relaying the media
                 connection.dontCaptureUserMedia = true;
-                connection.attachStreams = [event.stream];
+                /*connection.attachStreams = [event.stream];
                 connection.sdpConstraints.mandatory = {
                     OfferToReceiveAudio: false,
                     OfferToReceiveVideo: false
                 };
+                */
 
                 connection.getSocket(function (socket) {
-                    socket.emit('can-relay-broadcast');
-
+                    //socket.emit('can-relay-broadcast');
+                    /*
                     if (connection.DetectRTC.browser.name === 'Chrome') {
                         connection.getAllParticipants().forEach(function (p) {
                             if (p + '' != event.userid + '') {
@@ -245,6 +246,7 @@
                             }
                         });
                     }
+                    */
 
                     // Firefox seems UN_ABLE to record remote MediaStream
                     // WebAudio solution merely records audio
@@ -305,33 +307,6 @@
         connection.onleave = function (event) {
             console.log(" leavingthebroadcast!!!!!!!")
             if (event.userid !== audioPreview.userid) return;
-
-            connection.getSocket(function (socket) {
-                socket.emit('can-not-relay-broadcast');
-                connection.isUpperUserLeft = true;
-
-                if (allRecordedBlobs.length) {
-                    // playing lats recorded blob
-                    var lastBlob = allRecordedBlobs[allRecordedBlobs.length - 1];
-                    audioPreview.src = URL.createObjectURL(lastBlob);
-                    audioPreview.play();
-                    allRecordedBlobs = [];
-                } else if (connection.currentRecorder) {
-                    var recorder = connection.currentRecorder;
-                    connection.currentRecorder = null;
-                    recorder.stopRecording(function () {
-                        if (!connection.isUpperUserLeft) return;
-
-                        audioPreview.src = URL.createObjectURL(recorder.getBlob());
-                        audioPreview.play();
-                    });
-                }
-
-                if (connection.currentRecorder) {
-                    connection.currentRecorder.stopRecording();
-                    connection.currentRecorder = null;
-                }
-            });
         };
 
         var allRecordedBlobs = [];

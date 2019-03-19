@@ -377,6 +377,23 @@ func (context *HandlerContext) UserQueryHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	//Get all users query
+	if len(r.URL.Query()["all"]) != 0 {
+		if r.URL.Query()["all"][0] == "true" {
+			allUsers, err := context.User.GetAllUsers()
+
+			w.Header().Set(HeaderContentType, HeaderJSON)
+			err = json.NewEncoder(w).Encode(allUsers)
+
+			if err != nil {
+				http.Error(w, fmt.Sprintf("Error encoding the users JSON"), http.StatusInternalServerError)
+				return
+			}
+			return
+
+		}
+	}
+
 	if len(r.URL.Query()["q"]) == 0 {
 		http.Error(w, "No query given", http.StatusBadRequest)
 		return

@@ -4,7 +4,11 @@ const Schema = mongoose.Schema;
 let streamSchema = new Schema({
     channelID: {type: String, required: true, unique: true},
     displayName: {type: String, required: true},
-    discription: {type: String, required: false},
+    description: {type: String, required: false},
+    status:{ type: {
+        text: String,
+        image: String
+    }, required: false} ,
     genre: {type: String, required: true},
     createdAt: {type: Date, required: true, default: Date.now},
     goLiveTime: {type: Date, required: false},

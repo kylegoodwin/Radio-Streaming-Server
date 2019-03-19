@@ -55,8 +55,7 @@ func (db *MySQLStore) Insert(user *User) (*User, error) {
 
 //GetByID returns the user with the associated id from the database
 func (db *MySQLStore) GetByID(id int64) (*User, error) {
-	fmt.Println("ID IN MYSQLSTORE")
-	fmt.Println(id)
+
 	selectStatement := "Select * From users Where id=?"
 	row := db.Client.QueryRow(selectStatement, id)
 
@@ -117,7 +116,7 @@ func (db *MySQLStore) GetByUserName(username string) (*User, error) {
 //and returns the newly-updated user
 func (db *MySQLStore) Update(id int64, updates *Updates) (*User, error) {
 
-	_, err := db.Client.Exec("update users set first_name=? , last_name=? where id =?", updates.FirstName, updates.LastName, id)
+	_, err := db.Client.Exec("update users set first_name=? , last_name=?, photo_url=? where id =?", updates.FirstName, updates.LastName, updates.PhotoURL, id)
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil, err
@@ -155,6 +154,32 @@ func (db *MySQLStore) Delete(id int64) error {
 	}
 
 	return nil
+
+}
+
+func (db *MySQLStore) GetAllUsers() ([]*User, error) {
+
+	selectStatement := "Select * From users"
+	rows, err := db.Client.Query(selectStatement)
+
+	if err != nil {
+		fmt.Printf("error querying database %v\n", err)
+		return nil, fmt.Errorf("DBMS error when querying")
+	}
+
+	var users []*User = []*User{}
+
+	for rows.Next() {
+		var user User
+		if err := rows.Scan(&user.ID, &user.Email, &user.PassHash, &user.UserName, &user.FirstName, &user.LastName, &user.PhotoURL); err != nil {
+			fmt.Printf("error scanning row: %v\n", err)
+			return nil, fmt.Errorf("DBMS error when querying")
+		}
+		users = append(users, &user)
+
+	}
+
+	return users, nil
 
 }
 

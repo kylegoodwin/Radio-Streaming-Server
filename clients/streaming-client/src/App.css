@@ -1,5 +1,6 @@
 .App {
   text-align: center;
+  
 }
 
 .App-logo {
@@ -23,9 +24,19 @@
   color: #61dafb;
 }
 
+.home{
+  background-color: #343a40!important;
+  -webkit-background-size: cover;
+  -moz-background-size: cover;
+  -o-background-size: cover;
+  background-size: cover;
+  height: -webkit-fill-available;
+}
+
 .stream-list {
   display: flex;
   flex-direction: column;
+  
 }
 
 .stream-listing {
@@ -39,6 +50,11 @@ margin: 1em;
  cursor: default;
 }
 
+.stream-listing:hover{
+  text-decoration: none!important;
+  color: darkgrey;
+}
+
 .stream-listing-info > h1:hover{
   color: darkgrey;
   cursor: pointer;
@@ -50,22 +66,30 @@ margin: 1em;
 }
 
 .stream-img {
-  max-height: inherit;
+  height: inherit;
+  width: 10em;
   margin-right: 1em;
 }
 
+.stream-profile-img {
+  max-height: inherit;
+  
+}
+
 .streamy{
+
   display:flex;
   flex-direction: row;
-  max-height: 10em;
+  max-height: 15em;
   width:inherit;
   align-items: left;
   margin-bottom: 1em;
-  background:  #535353;
+  background-color: #343a40;
 }
 
 .stream-title{
   margin:0;
+  width: 10em;
 }
 
 .stream-player-info{
@@ -90,8 +114,33 @@ margin: 1em;
   flex-direction: column;
 }
 
-.player{
-  width:inherit;
+.stream-upper{
+  display: flex;
+  flex-direction: row;
+  margin-left: 1em;
+  color: white;
+}
+
+.track-play-btn {
+  height: 100px;
+  width: 100px;
+  background-image: url("./img/play-dark.svg");
+  background-repeat: no-repeat;
+  background-position: 0 center;
+  background-size: 50%;
+  z-index: 5;
+  
+}
+
+.track-pause-btn {
+  height: 100px;
+  width: 100px;
+  background-image: url("./img/pause-dark.svg");
+  background-repeat: no-repeat;
+  background-position: 0 center;
+  background-size: 50%;
+  z-index: 5;
+  
 }
 
 .cropper {

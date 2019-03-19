@@ -2,29 +2,34 @@ import React, {Component} from 'react';
 import {Link, Route, Redirect, Switch} from 'react-router-dom';
 import placeholder from '../img/stream-placeholder.png'
 import muaz from '../img/muaz.jpeg'
-
+import GlobalStore from '../GlobalStore'
+import {observer} from 'mobx-react'
 class Home extends Component{
     constructor(props){
         super(props);
         this.state = {
             streams:[],
-            loggedIn:true
+            loggedIn:false
         };
     };
 
     componentDidMount(){
         //check session token
         //this.setState({loggedIn:this.props.loggedIn})
-        console.log("fucku")
-
-        this.getStreams();
+        console.log("home mounted")
+        if(GlobalStore.isAuthenticated){
+            this.getStreams()
+        }
+        
     };
 
     getStreams = () =>{
         try{
-            fetch('https://audio-api.kjgoodwin.me/v1/audio/streams/',{
+            console.log("try")
+            fetch('https://audio-api.kjgoodwin.me/v1/channels?live=true',{
                 method: "GET",
                 headers: {
+                    'Authorization': GlobalStore.token,
                     'Content-Type': 'application/json'
                 }
             }).then((response) => response.json())
@@ -41,21 +46,30 @@ class Home extends Component{
     };
 
     render(){
-        if(!this.state.loggedIn){
-            return <Redirect to="/login"/>
-        }
-        let streamsArray = this.state.streams.map((stream) => {
-            return(
-                <StreamListing channelID={stream.channelID} name={stream.displayName} key={stream}/>
+        if(GlobalStore.isAuthenticated){
+            let streamsArray = this.state.streams.map((stream) => {
+                return(
+                    <StreamListing 
+                    channelID={stream.channelID} 
+                    name={stream.displayName} 
+                    key={stream} 
+                    creator={stream.creator.userName}
+                    img={stream.creator.photoURL}
+                    />
+                );
+            })
+            return (
+                <div className="home">
+                    <div className="stream-list">
+                        {streamsArray}
+                    </div>
+                </div>
             );
-        })
-        return (
-            <div className="stream-list">
-                {streamsArray}
-            </div>
-        );
+        } else {
+            return <Redirect to={{ pathname: '/login', state: { from: this.props.location } }} />
+        }
     };
-};
+}
 
 class StreamListing extends Component{
     constructor(props){
@@ -84,17 +98,17 @@ class StreamListing extends Component{
     };
 
     componentDidMount(){
-        this.getStreamInfo();
+        //this.getStreamInfo();
     };
 
     render(){
         let path = "/channels/" + this.props.channelID;
         return(
             <Link className="stream-listing" to={path}>
-                <img className="stream-img" src={muaz} />
+                <img className="stream-img" src={this.props.img} />
                 <div className="stream-listing-info">
                     <h1>{this.props.name}</h1>
-                    <h2>Streamer</h2>
+                    <h2>{this.props.creator}</h2>
                 </div>
                 
             </Link>
@@ -102,4 +116,4 @@ class StreamListing extends Component{
     }
 }
 
-export default Home;
+export default observer(Home);
