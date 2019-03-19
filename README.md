@@ -5,7 +5,7 @@ We will build a service that allows users to stream audio from a host to a serve
 
 ___________________________________
 # System Architecture
-![](serverarchitechture.png)
+![](RadioStreamServerArchitecture.png)
 ___________________________________
 
 # Use Cases
@@ -23,17 +23,11 @@ Creates a channel with the currently logged in user as the `creator`. Will requi
 	"channelID": String,
 	"displayName": String,
 	"description": String,
-	"genre": String,
-	"creator": User,
-	"createdAt": Date,
-	"goLiveTime": Date,
-	"active": bool,
-	"activeListeners": [int],
-	"followers": [int]
+	"genre": String
 }
 ```
 #### GET
-Will return a an array of JSON objects which are the requested channels can accept query parameters such as `?active=true` or `?genre=rock`
+Will return a an array of JSON objects which are the requested channels can accept query parameters such as `?live=true`, `?genre=rock` and `?username=johndoe`.
 ```JS
 [
 	{
@@ -82,25 +76,19 @@ Will first verify that the sender is the `creator` of the `channel` then update 
 	"genre": String
 }
 ```
-### /channels/{userName}
-#### GET
-Will return an array of `channel` objects of which the specified `userName` is the `creator`.
-```JS
-[
-	{
-		"_id": String
-		"displayName": String,
-		"description": String,
-		"genre": String,
-		"creator": User,
-		"createdAt": Date,
-		"goLiveTime": Date,
-		"active": bool,
-		"activeListeners": [int],
-		"followers": [int]
-	}
-]
-```
+
+### /channels/{channelID}/followers
+#### POST
+Will add the currently authenticated `user` to the `listeners` array of the specified `channelID`. If you are a listener of a `channel`, you will receive notifications (rabbit messages) for messages to the `channel`.
+
+#### DELETE
+Will remove the currently authenticated `user` to the `listeners` array of the specified `channelID`. If you are a listener of a `channel`, you will receive notifications (rabbit messages) for messages to the `channel`.
+
+
+### /channels/{channelID}/listeners
+#### POST
+Will add the currently authenticated `user` to the `followers` array of the specified `channelID`.
+
 
 ### /users/{userID}/following
 #### GET
@@ -215,4 +203,68 @@ This handler will fetch the state of a specified `sessionID` and then return tha
 	"sessionBegin": Time,
 	"user": User
 }
+```
+
+# Database Schemas
+## MySQL
+```SQL
+create table if not exists users (
+    id int not null auto_increment primary key,
+    email varchar(255) not null,
+    password_hash binary(60) not null,
+    username varchar(255) not null,
+    first_name varchar(64),
+    last_name varchar(64),
+    photo_url varchar(255) not null,
+    index email_index (email),
+    index username_index (username)
+);
+
+CREATE UNIQUE INDEX index_unique ON users(email);
+CREATE UNIQUE INDEX index_unique_username ON users(username);
+
+
+create table if not exists logins (
+    login_key int not null auto_increment primary key,
+    user_id int not null,
+    login_time datetime not null,
+    user_ip varchar(39) not null
+);
+```
+
+## MongoDB (Mongoose) Schemas
+
+```JS
+let streamSchema = new Schema({
+    channelID: {type: String, required: true, unique: true},
+    displayName: {type: String, required: true},
+    discription: {type: String, required: false},
+    genre: {type: String, required: true},
+    createdAt: {type: Date, required: true, default: Date.now},
+    goLiveTime: {type: Date, required: false},
+    creator:{ type: {
+        id: Number,
+        userName: String,
+        firstName: String,
+        lastName: String,
+        photoURL: String
+    }, required: true} ,
+    active: {type: Boolean, required: true},
+    activeListeners: {type: [Number], required: true},
+    followers: {type: [Number], required: true}
+});
+
+let messageSchema = new Schema({
+    channelID: {type: String, required: true},
+    body: {type: String, required: true},
+    createdAt: {type: Date, required: true, default: Date.now},
+    creator: {
+        id: Number,
+        userName: String,
+        firstName: String,
+        lastName: String,
+        photoURL: String
+    },
+    editedAt: {type: Date}
+});
 ```
