@@ -23,17 +23,11 @@ Creates a channel with the currently logged in user as the `creator`. Will requi
 	"channelID": String,
 	"displayName": String,
 	"description": String,
-	"genre": String,
-	"creator": User,
-	"createdAt": Date,
-	"goLiveTime": Date,
-	"active": bool,
-	"activeListeners": [int],
-	"followers": [int]
+	"genre": String
 }
 ```
 #### GET
-Will return a an array of JSON objects which are the requested channels can accept query parameters such as `?active=true` or `?genre=rock`
+Will return a an array of JSON objects which are the requested channels can accept query parameters such as `?live=true`, `?genre=rock` and `?username=johndoe`.
 ```JS
 [
 	{
@@ -82,6 +76,19 @@ Will first verify that the sender is the `creator` of the `channel` then update 
 	"genre": String
 }
 ```
+
+### /channels/{channelID}/followers
+#### POST
+Will add the currently authenticated `user` to the `listeners` array of the specified `channelID`. If you are a listener of a `channel`, you will receive notifications (rabbit messages) for messages to the `channel`.
+
+#### DELETE
+Will remove the currently authenticated `user` to the `listeners` array of the specified `channelID`. If you are a listener of a `channel`, you will receive notifications (rabbit messages) for messages to the `channel`.
+
+
+### /channels/{channelID}/listeners
+#### POST
+Will add the currently authenticated `user` to the `followers` array of the specified `channelID`.
+
 ### /channels/{userName}
 #### GET
 Will return an array of `channel` objects of which the specified `userName` is the `creator`.
