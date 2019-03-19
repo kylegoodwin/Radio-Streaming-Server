@@ -5,7 +5,7 @@ We will build a service that allows users to stream audio from a host to a serve
 
 ___________________________________
 # System Architecture
-![](arch.png)
+![](RadioStreamServerArchitecture.png)
 ___________________________________
 
 # Use Cases
