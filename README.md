@@ -77,38 +77,32 @@ Will first verify that the sender is the `creator` of the `channel` then update 
 }
 ```
 
+### /status/{channelID}
+#### POST
+Can handle updates to the "currently playing" song.
+
+```JS
+{
+	"text": String,
+	"photoURL": String
+}
+```
 ### /channels/{channelID}/followers
 #### POST
-Will add the currently authenticated `user` to the `listeners` array of the specified `channelID`. If you are a listener of a `channel`, you will receive notifications (rabbit messages) for messages to the `channel`.
+Will add the currently authenticated `user` to the `listeners` array of the specified `channelID`.
 
 #### DELETE
-Will remove the currently authenticated `user` to the `listeners` array of the specified `channelID`. If you are a listener of a `channel`, you will receive notifications (rabbit messages) for messages to the `channel`.
+Will remove the currently authenticated `user` from the `followers` array of the specified `channelID`.
 
 
 ### /channels/{channelID}/listeners
 #### POST
 Will add the currently authenticated `user` to the `followers` array of the specified `channelID`.
 
+#### DELETE
+Will remove the currently authenticated `user` from the `listeners` array of the specified `channelID`. If you are a listener of a `channel`, you will receive notifications (rabbit messages) for messages to the `channel`.
 
-### /users/{userID}/following
-#### GET
-This handler will return an array of `channels` of which the specified `userName` is a follower of.
-```JS
-[
-			{
-	"_id": String,
-	"displayName": String,
-	"description": String,
-	"genre": String,
-	"creator": user,
-	"createdAt": Date,
-	"goLiveTime": Date,
-	"active": bool,
-	"activeListeners": [int],
-	"followers": [int]
-	}
-]
-```
+
 ## Comments
 ### /comments/{channelID}
 #### GET
