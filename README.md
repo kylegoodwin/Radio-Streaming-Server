@@ -1,6 +1,9 @@
 # Audio Streaming Service
 # Project description
 
+link to service https://audio-api.kjgoodwin.me/v1/
+linkt ios client https://github.com/Escohen98/Radiu
+
 We will build a service that allows users to stream audio from a host to a server, which can then broadcast the stream to many users who tune in. The users will also have access to information about the stream, such as what song is being played, and be able to live chat about the stream. We have a 2 sided user base, streamers and listeners. The streamer users may have a broad variety of reasons to broadcast but they are essentially anyone who wants to broadcast an audio stream of any kind. This could take the form of a DJ mixing music, a typical radio show, or a podcast for example. The listeners are people who wish to listen to the content of the streamers, music fans, talk show fans, etc. Broadcasting is obviously a widely used technology, which is used by pretty much every person on earth with access to a computer, radio, or TV. There are plenty of people who listen to music and talk shows and plenty of people who wish to create broadcasted content as well. Our project will lower the barrier of entry for broadcasters, allowing them to broadcast with nothing more than a laptop. In turn, this will expose listeners to a wider variety of content. We want to build this app because it presents a challenging problem and interesting solution. We as a group are interested in music and want to learn how to build systems that facilitate the sharing of music.
 
 ___________________________________
