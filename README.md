@@ -79,7 +79,7 @@ Will first verify that the sender is the `creator` of the `channel` then update 
 
 ### /status/{channelID}
 #### POST
-Can handle updates to the "currently playing" song.
+Can handle updates to the "currently playing" song. 
 
 ```JS
 {
