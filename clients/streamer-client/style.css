@@ -1,0 +1,61 @@
+body{
+    font-family: Arial, Helvetica, sans-serif;
+    text-align: center;
+}
+
+.logincontainer h1{
+    font-size: 1.5em;
+    text-align: center;
+    padding: 1em;
+}
+
+
+.logincontainer{
+    background-color: lightblue;
+    width: 33%;
+    height: 300px;
+    border-radius: 10px;
+    text-align: center;
+    margin: auto;
+    margin-top: 100px;
+}
+
+
+.stream-container, .new-channel{
+    background-color: steelblue;
+    width: 30%;
+    padding: 1em;
+    margin:  1em;
+}
+
+.stream-container:hover{
+    background-color: lightgray;
+}
+
+label{
+    width: 100%;
+}
+
+h1{
+    margin-left: .5em;
+}
+
+h2{
+    font-size: 1em;
+}
+
+#status {
+    background-color: steelblue;
+    padding: 1em;
+    margin: auto;
+}
+
+#status input, .new-channel input{
+    background-color: white;
+    padding: 0;
+    display: inline;
+}
+
+.new-channel{
+    background-color: #729ab4;
+}

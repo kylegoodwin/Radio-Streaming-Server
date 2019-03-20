@@ -48,6 +48,7 @@ type NewUser struct {
 type Updates struct {
 	FirstName string `json:"firstName"`
 	LastName  string `json:"lastName"`
+	PhotoURL  string `json:"photoURL"`
 }
 
 //Validate validates the new user and returns an error if
@@ -193,6 +194,7 @@ func (u *User) ApplyUpdates(updates *Updates) error {
 
 	u.FirstName = updates.FirstName
 	u.LastName = updates.LastName
+	u.PhotoURL = updates.PhotoURL
 
 	return nil
 }

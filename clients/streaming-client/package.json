@@ -3,11 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "bootstrap": "^3.4.1",
+    "mobx": "^5.9.0",
+    "mobx-react": "^5.4.3",
     "react": "^16.8.4",
     "react-audio-player": "^0.11.0",
+    "react-bootstrap": "^1.0.0-beta.5",
     "react-dom": "^16.8.4",
     "react-router-dom": "^4.3.1",
-    "react-scripts": "2.1.8"
+    "react-scripts": "2.1.8",
+    "react-websocket": "^2.0.1",
+    "rtcmulticonnection": "^3.6.8",
+    "socket.io": "^2.2.0"
   },
   "scripts": {
     "start": "react-scripts start",

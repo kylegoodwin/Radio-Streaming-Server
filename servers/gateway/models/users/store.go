@@ -33,4 +33,7 @@ type Store interface {
 
 	//Builds a Trie of users for search
 	BuildTrie() (*indexes.Trie, error)
+
+	//GetAllUsers
+	GetAllUsers() ([]*User, error)
 }

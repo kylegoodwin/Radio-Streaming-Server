@@ -156,10 +156,6 @@ func main() {
 	mux := http.NewServeMux()
 
 	//Handle the v1 call
-	/*
-		mux.Handle("/socket.io/", audioProxy)
-		mux.Handle("/socket.io", audioProxy)
-	*/
 	mux.Handle("/v1/audio", audioProxy)
 	mux.Handle("/v1/audio/", audioProxy)
 	mux.Handle("/v1/summary", summaryProxy)
@@ -167,6 +163,7 @@ func main() {
 	mux.Handle("/v1/channels/", audioProxy)
 	mux.Handle("/v1/comments", messageProxy)
 	mux.Handle("/v1/comments/", messageProxy)
+	mux.Handle("/v1/status/", messageProxy)
 	mux.HandleFunc("/ws", context.WSUpgrade)
 	mux.HandleFunc("/v1/users", context.UsersHandler)
 	mux.HandleFunc("/v1/users/", context.SpecificUserHandler)
